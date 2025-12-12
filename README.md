@@ -6,4 +6,4 @@ EATING SAND IS NOW FREE!!!!!!
 
 -> QUICK AND EASY WAY
 
-![]([https://tenor.com/view/sand-eat-eat-sand-yummy-gif-20549525](https://media.tenor.com/sGSCcUOJt8QAAAAM/sand-eat.gif))
+![](https://media.tenor.com/sGSCcUOJt8QAAAAM/sand-eat.gif)
