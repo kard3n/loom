@@ -3,7 +3,7 @@ import 'package:loom_app/src/pages/alerts_page.dart';
 import 'package:loom_app/src/pages/circle_page.dart';
 import 'package:loom_app/src/pages/clips_page.dart';
 import 'package:loom_app/src/pages/feed_page.dart';
-import 'package:loom_app/src/pages/inbox_page.dart';
+import 'package:loom_app/src/pages/Settings/Settings_page.dart';
 import 'package:loom_app/src/rust/frb_generated.dart';
 
 Future<void> main() async {
@@ -74,9 +74,9 @@ class _HomeScreenState extends State<HomeScreen> {
         page: const AlertsPage(),
       ),
       _NavigationItem(
-        label: 'Inbox',
+        label: 'Settings',
         icon: Icons.inbox_rounded,
-        page: const InboxPage(),
+        page: const SettingsPage(),
         fabLabel: 'New message',
         fabIcon: Icons.markunread_mailbox_rounded,
         onFabTap: () => _showAction('Compose a message'),
@@ -87,9 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showAction(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
