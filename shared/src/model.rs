@@ -7,9 +7,11 @@ pub static UUID_SIZE: usize = 36;
 #[derive(PartialEq)]
 pub struct User{
     pub uuid: String<UUID_SIZE>,
-    pub username: String<128>,
+    pub username: String<64>,
+    pub status: String<128>,
     pub bio: String<1024>,
     pub profile_picture: String<UUID_SIZE>,
+    pub last_contact: DateTime<Utc>,
 }
 
 #[derive(Debug)]
