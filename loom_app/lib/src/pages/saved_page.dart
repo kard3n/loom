@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:loom_app/src/controllers/saved_controller.dart';
+import 'package:loom_app/src/controllers/posts_controller.dart';
+import 'package:loom_app/src/controllers/profiles_controller.dart';
+import 'package:loom_app/src/models/post.dart';
 
-class SavedPage extends GetView<SavedController> {
+class SavedPage extends StatelessWidget {
   const SavedPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final ThemeData base = Theme.of(context);
+    final postsController = Get.find<PostsController>();
+    final profilesController = Get.find<ProfilesController>();
     return Obx(() {
-      final ThemeData sectionTheme = base.copyWith(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: controller.seedColor.value,
-          brightness: base.brightness,
-        ),
-        scaffoldBackgroundColor: controller.scaffoldBackgroundColor.value,
-      );
+      final ThemeData sectionTheme = base;
 
-      final items = controller.items;
+      final items = postsController.posts.where((p) => !p.isClip).toList(growable: false);
       return Theme(
         data: sectionTheme,
         child: ListView.builder(
@@ -32,12 +30,12 @@ class SavedPage extends GetView<SavedController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      controller.title.value,
+                      'Saved',
                       style: sectionTheme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      controller.subtitle.value,
+                      'Library of posts you pinned for later.',
                       style: sectionTheme.textTheme.bodyMedium,
                     ),
                   ],
@@ -45,7 +43,9 @@ class SavedPage extends GetView<SavedController> {
               );
             }
 
-            final SavedItemCard item = items[index - 1];
+            final Post post = items[index - 1];
+            final author = profilesController.byId(post.authorId);
+            final tag = post.tags.isNotEmpty ? post.tags.first : 'Saved';
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Card(
@@ -53,7 +53,7 @@ class SavedPage extends GetView<SavedController> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: item.accent.withOpacity(0.12),
+                    color: sectionTheme.colorScheme.primary.withOpacity(0.06),
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: Padding(
@@ -69,12 +69,12 @@ class SavedPage extends GetView<SavedController> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
                                   Text(
-                                    item.title,
+                                    post.text,
                                     style: sectionTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    'by ${item.author}',
+                                    'by ${author?.name ?? 'Unknown'}',
                                     style: sectionTheme.textTheme.bodySmall,
                                   ),
                                 ],
@@ -88,7 +88,7 @@ class SavedPage extends GetView<SavedController> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          item.excerpt,
+                          post.text,
                           style: sectionTheme.textTheme.bodyLarge,
                         ),
                         const SizedBox(height: 12),
@@ -97,11 +97,11 @@ class SavedPage extends GetView<SavedController> {
                           children: <Widget>[
                             Chip(
                               avatar: const Icon(Icons.bookmark_added_rounded, size: 16),
-                              label: Text(item.tag),
+                              label: Text(tag),
                               padding: const EdgeInsets.symmetric(horizontal: 6),
                             ),
                             Text(
-                              item.savedAgo,
+                              'Saved ${post.timeAgoLabel} ago',
                               style: sectionTheme.textTheme.bodySmall?.copyWith(
                                 color: sectionTheme.colorScheme.onSurfaceVariant,
                               ),

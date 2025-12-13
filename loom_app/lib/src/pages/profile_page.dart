@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:loom_app/src/controllers/profile_controller.dart';
+import 'package:loom_app/src/controllers/posts_controller.dart';
+import 'package:loom_app/src/controllers/profiles_controller.dart';
+import 'package:loom_app/src/models/post.dart';
 
-class ProfilePage extends GetView<ProfileController> {
+class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key, required this.friendName});
 
   final String friendName;
@@ -11,8 +13,17 @@ class ProfilePage extends GetView<ProfileController> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme cs = theme.colorScheme;
+    final profilesController = Get.find<ProfilesController>();
+    final postsController = Get.find<PostsController>();
 
     return Obx(() {
+      final profile = profilesController.byName(friendName);
+      final bio = profile?.bio ?? '';
+      final recent = postsController.posts
+          .where((Post p) => p.authorId == (profile?.id ?? ''))
+          .take(2)
+          .toList(growable: false);
+
       return Scaffold(
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
@@ -67,7 +78,7 @@ class ProfilePage extends GetView<ProfileController> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  controller.bio.value,
+                                  bio,
                                   style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                                 ),
                               ],
@@ -87,9 +98,9 @@ class ProfilePage extends GetView<ProfileController> {
                   <Widget>[
                     _StatsRow(
                       items: <_StatItem>[
-                        _StatItem(label: controller.statTotemsLabel.value, value: '—'),
-                        _StatItem(label: controller.statPostsLabel.value, value: '—'),
-                        _StatItem(label: controller.statFriendsLabel.value, value: '—'),
+                        const _StatItem(label: 'Totems', value: '—'),
+                        const _StatItem(label: 'Posts', value: '—'),
+                        const _StatItem(label: 'Friends', value: '—'),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -99,7 +110,7 @@ class ProfilePage extends GetView<ProfileController> {
                           child: FilledButton.icon(
                             onPressed: () {},
                             icon: const Icon(Icons.message_rounded),
-                            label: Text(controller.messageLabel.value),
+                            label: const Text('Message'),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -107,30 +118,30 @@ class ProfilePage extends GetView<ProfileController> {
                           child: OutlinedButton.icon(
                             onPressed: () {},
                             icon: const Icon(Icons.person_add_alt_1_rounded),
-                            label: Text(controller.followLabel.value),
+                            label: const Text('Follow'),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     _SectionCard(
-                      title: controller.aboutTitle.value,
+                      title: 'About',
                       child: Text(
-                        controller.aboutBody.value,
+                        profile?.status ?? '',
                         style: theme.textTheme.bodyMedium,
                       ),
                     ),
                     const SizedBox(height: 12),
                     _SectionCard(
-                      title: controller.pinnedTitle.value,
+                      title: 'Pinned',
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.bookmark_added_rounded),
-                            title: Text(controller.pinnedThreadTitle.value),
-                            subtitle: Text(controller.pinnedThreadSubtitle.value),
+                            title: const Text('Pinned thread'),
+                            subtitle: const Text('A saved highlight you can open later.'),
                             trailing: const Icon(Icons.chevron_right_rounded),
                             onTap: () {},
                           ),
@@ -138,8 +149,8 @@ class ProfilePage extends GetView<ProfileController> {
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.auto_awesome_rounded),
-                            title: Text(controller.pinnedTotemTitle.value),
-                            subtitle: Text(controller.pinnedTotemSubtitle.value),
+                            title: const Text('Totem ritual'),
+                            subtitle: const Text('A ritual or prompt this user is known for.'),
                             trailing: const Icon(Icons.chevron_right_rounded),
                             onTap: () {},
                           ),
@@ -148,18 +159,27 @@ class ProfilePage extends GetView<ProfileController> {
                     ),
                     const SizedBox(height: 12),
                     _SectionCard(
-                      title: controller.recentPostsTitle.value,
+                      title: 'Recent posts',
                       child: Column(
                         children: <Widget>[
-                          _PostPlaceholderTile(
-                            title: controller.recentPost1Title.value,
-                            subtitle: controller.recentPost1Subtitle.value,
-                          ),
-                          const Divider(height: 1),
-                          _PostPlaceholderTile(
-                            title: controller.recentPost2Title.value,
-                            subtitle: controller.recentPost2Subtitle.value,
-                          ),
+                          if (recent.isEmpty)
+                            const _PostPlaceholderTile(
+                              title: 'No posts yet',
+                              subtitle: 'Posts will show up here when available.',
+                            )
+                          else ...<Widget>[
+                            _PostPlaceholderTile(
+                              title: recent.first.text,
+                              subtitle: recent.first.timeAgoLabel,
+                            ),
+                            if (recent.length > 1) ...<Widget>[
+                              const Divider(height: 1),
+                              _PostPlaceholderTile(
+                                title: recent[1].text,
+                                subtitle: recent[1].timeAgoLabel,
+                              ),
+                            ],
+                          ],
                         ],
                       ),
                     ),

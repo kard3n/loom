@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loom_app/src/controllers/totems_controller.dart';
+import 'package:loom_app/src/models/totem.dart';
 
 IconData _signalIconFor(int strength) {
   final int s = strength.clamp(0, 4);
@@ -30,7 +31,7 @@ class TotemsPage extends GetView<TotemsController> {
         slivers: <Widget>[
           SliverToBoxAdapter(
             child: _TotemHeader(
-              greeting: controller.greeting.value,
+              greeting: 'These are the available Totems:',
               nofTotems: totems.length,
             ),
           ),
@@ -97,7 +98,7 @@ class _TotemHeader extends StatelessWidget {
 
 class _TotemCard extends StatelessWidget {
   const _TotemCard({required this.totem});
-  final TotemCard totem;
+  final Totem totem;
 
   @override
   Widget build(BuildContext context) {
@@ -119,7 +120,7 @@ class _TotemCard extends StatelessWidget {
                   children: <Widget>[
                     Expanded(
                       child: Text(
-                        '${Get.find<TotemsController>().nameLabel.value}: ${totem.name}',
+                        'Name: ${totem.name}',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -130,7 +131,7 @@ class _TotemCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${Get.find<TotemsController>().descriptionLabel.value}: ${totem.description}',
+                  'Description: ${totem.description}',
                   style: theme.textTheme.bodyMedium,
                   softWrap: true,
                 ),
@@ -146,7 +147,7 @@ class _TotemCard extends StatelessWidget {
                 size: 18,
                 color: theme.colorScheme.primary,
               ),
-              label: Text(Get.find<TotemsController>().connectLabel.value),
+              label: const Text('Connect'),
             );
 
             if (isNarrow) {

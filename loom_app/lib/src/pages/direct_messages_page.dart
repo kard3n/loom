@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:loom_app/src/controllers/direct_messages_controller.dart';
+import 'package:loom_app/src/controllers/profiles_controller.dart';
 
-class DirectMessagesPage extends GetView<DirectMessagesController> {
+class DirectMessagesPage extends StatelessWidget {
   const DirectMessagesPage({super.key, required this.friendName});
 
   final String friendName;
@@ -10,7 +10,9 @@ class DirectMessagesPage extends GetView<DirectMessagesController> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final profilesController = Get.find<ProfilesController>();
     return Obx(() {
+      final profile = profilesController.byName(friendName);
       return Scaffold(
         appBar: AppBar(
           title: Text(friendName),
@@ -35,13 +37,15 @@ class DirectMessagesPage extends GetView<DirectMessagesController> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            controller.emptyTitle.value,
+                            'No messages yet',
                             style: theme.textTheme.titleMedium,
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            controller.emptySubtitle.value,
+                            profile == null
+                                ? 'Start a conversation.'
+                                : 'Say hi to ${profile.name}.',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -68,7 +72,6 @@ class _PlaceholderComposer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final controller = Get.find<DirectMessagesController>();
     return Material(
       color: theme.colorScheme.surface,
       child: SafeArea(
@@ -77,40 +80,34 @@ class _PlaceholderComposer extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
           child: Row(
             children: [
-              Obx(
-                () => IconButton(
-                  onPressed: null,
-                  icon: const Icon(Icons.add),
-                  tooltip: controller.addTooltip.value,
-                ),
+              IconButton(
+                onPressed: null,
+                icon: const Icon(Icons.add),
+                tooltip: 'Add',
               ),
               Expanded(
-                child: Obx(
-                  () => TextField(
-                    enabled: false,
-                    decoration: InputDecoration(
-                      hintText: controller.messageHint.value,
-                      filled: true,
-                      fillColor: theme.colorScheme.surfaceContainerHighest,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(999),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
+                child: TextField(
+                  enabled: false,
+                  decoration: InputDecoration(
+                    hintText: 'Message…',
+                    filled: true,
+                    fillColor: theme.colorScheme.surfaceContainerHighest,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Obx(
-                () => IconButton.filled(
-                  onPressed: null,
-                  icon: const Icon(Icons.send),
-                  tooltip: controller.sendTooltip.value,
-                ),
+              IconButton.filled(
+                onPressed: null,
+                icon: const Icon(Icons.send),
+                tooltip: 'Send',
               ),
             ],
           ),

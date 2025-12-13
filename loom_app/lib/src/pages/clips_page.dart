@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:loom_app/src/controllers/clips_controller.dart';
+import 'package:loom_app/src/controllers/posts_controller.dart';
+import 'package:loom_app/src/controllers/profiles_controller.dart';
+import 'package:loom_app/src/models/post.dart';
 
-class ClipsPage extends GetView<ClipsController> {
+class ClipsPage extends StatelessWidget {
   const ClipsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final postsController = Get.find<PostsController>();
+    final profilesController = Get.find<ProfilesController>();
     return Obx(() {
-      final clips = controller.clips;
+      final clips = postsController.clips();
       return ListView.builder(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 32, 16, 96),
@@ -19,12 +23,13 @@ class ClipsPage extends GetView<ClipsController> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Text(
-                controller.title.value,
+                'Fresh clips',
                 style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
             );
           }
-          final ClipCard clip = clips[index - 1];
+          final Post clip = clips[index - 1];
+          final author = profilesController.byId(clip.authorId);
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: Card(
@@ -39,8 +44,13 @@ class ClipsPage extends GetView<ClipsController> {
                       AspectRatio(
                         aspectRatio: 16 / 9,
                         child: Image.network(
-                          clip.thumbnailUrl,
+                          clip.imageUrl ?? '',
                           fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            alignment: Alignment.center,
+                            child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurfaceVariant),
+                          ),
                         ),
                       ),
                       Positioned(
@@ -53,7 +63,7 @@ class ClipsPage extends GetView<ClipsController> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            clip.duration,
+                            clip.clipDurationLabel ?? '',
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -75,12 +85,12 @@ class ClipsPage extends GetView<ClipsController> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          clip.title,
+                          clip.text,
                           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '${clip.author} • ${clip.timeAgo} • ${clip.views}',
+                          '${author?.name ?? 'Unknown'} • ${clip.timeAgoLabel} • ${clip.clipViewsLabel ?? ''}'.trim(),
                           style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                         ),
                       ],

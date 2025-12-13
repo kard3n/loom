@@ -1,25 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:loom_app/src/controllers/friends_controller.dart';
+import 'package:loom_app/src/controllers/profiles_controller.dart';
+import 'package:loom_app/src/models/profile.dart';
 import 'package:loom_app/src/pages/direct_messages_page.dart';
 import 'package:loom_app/src/pages/profile_page.dart';
 
-class FriendsPage extends GetView<FriendsController> {
+class FriendsPage extends GetView<ProfilesController> {
   const FriendsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final ThemeData base = Theme.of(context);
     return Obx(() {
-      final ThemeData sectionTheme = base.copyWith(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: controller.seedColor.value,
-          brightness: base.brightness,
-        ),
-        scaffoldBackgroundColor: controller.scaffoldBackgroundColor.value,
-      );
+      final ThemeData sectionTheme = base;
 
-      final friends = controller.friends;
+      final friends = controller.profiles.where((p) => !p.isCurrentUser).toList(growable: false);
 
       return Theme(
         data: sectionTheme,
@@ -35,12 +30,12 @@ class FriendsPage extends GetView<FriendsController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      controller.title.value,
+                      'Friends',
                       style: sectionTheme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      controller.subtitle.value,
+                      'Check in, send energy, hop into a room together.',
                       style: sectionTheme.textTheme.bodyMedium,
                     ),
                   ],
@@ -48,15 +43,15 @@ class FriendsPage extends GetView<FriendsController> {
               );
             }
 
-            final FriendCard friend = friends[index - 1];
+            final Profile friend = friends[index - 1];
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: <Color>[
-                      friend.vibe.withOpacity(0.15),
-                      friend.vibe.withOpacity(0.05),
+                      sectionTheme.colorScheme.primary.withOpacity(0.12),
+                      sectionTheme.colorScheme.primary.withOpacity(0.04),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -79,7 +74,7 @@ class FriendsPage extends GetView<FriendsController> {
                             children: <Widget>[
                               CircleAvatar(
                                 radius: 26,
-                                backgroundColor: friend.vibe.withOpacity(0.25),
+                                backgroundColor: sectionTheme.colorScheme.primary.withOpacity(0.15),
                                 child: Text(
                                   friend.name.substring(0, 1),
                                   style: sectionTheme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -98,7 +93,7 @@ class FriendsPage extends GetView<FriendsController> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      friend.lastSeen,
+                                      friend.lastSeenLabel,
                                       style: sectionTheme.textTheme.bodySmall,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -124,20 +119,6 @@ class FriendsPage extends GetView<FriendsController> {
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 6,
-                            children: friend.tags
-                                .map(
-                                  (String tag) => Chip(
-                                    avatar: const Icon(Icons.bolt_rounded, size: 16),
-                                    label: Text(tag),
-                                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                                  ),
-                                )
-                                .toList(),
-                          ),
                         ],
                       ),
                     ),
@@ -151,7 +132,7 @@ class FriendsPage extends GetView<FriendsController> {
     });
   }
 
-  void _openProfile(BuildContext context, FriendCard friend) {
+  void _openProfile(BuildContext context, Profile friend) {
     Navigator.of(context).push(
       MaterialPageRoute<ProfilePage>(
         builder: (BuildContext _) => ProfilePage(friendName: friend.name),
@@ -159,7 +140,7 @@ class FriendsPage extends GetView<FriendsController> {
     );
   }
 
-  void _openDirectMessages(BuildContext context, FriendCard friend) {
+  void _openDirectMessages(BuildContext context, Profile friend) {
     Navigator.of(context).push(
       MaterialPageRoute<DirectMessagesPage>(
         builder: (BuildContext _) => DirectMessagesPage(friendName: friend.name),
@@ -167,7 +148,7 @@ class FriendsPage extends GetView<FriendsController> {
     );
   }
 
-  void _showManageSheet(BuildContext context, FriendCard friend) {
+  void _showManageSheet(BuildContext context, Profile friend) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -183,7 +164,7 @@ class FriendsPage extends GetView<FriendsController> {
               children: <Widget>[
                 ListTile(
                   leading: const Icon(Icons.person_rounded),
-                  title: Text(controller.manageProfileLabel.value),
+                  title: const Text('Profile'),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     _openProfile(context, friend);
@@ -191,23 +172,23 @@ class FriendsPage extends GetView<FriendsController> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.block_rounded, color: Colors.deepOrange),
-                  title: Text(controller.manageBlockLabel.value),
+                  title: const Text('Block'),
                   textColor: Colors.deepOrange,
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(controller.blockedSnackbar(friend.name))),
+                      SnackBar(content: Text('Blocked ${friend.name}')),
                     );
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
-                  title: Text(controller.manageDeleteLabel.value),
+                  title: const Text('Delete'),
                   textColor: Colors.red,
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(controller.deletedSnackbar(friend.name))),
+                      SnackBar(content: Text('Deleted ${friend.name}')),
                     );
                   },
                 ),

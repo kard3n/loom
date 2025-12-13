@@ -1,28 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:loom_app/src/controllers/feed_controller.dart';
+import 'package:loom_app/src/controllers/posts_controller.dart';
+import 'package:loom_app/src/controllers/profiles_controller.dart';
+import 'package:loom_app/src/models/post.dart';
+import 'package:loom_app/src/models/profile.dart';
+import 'package:loom_app/src/rust/api/simple.dart';
 
-class FeedPage extends GetView<FeedController> {
+class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final profilesController = Get.find<ProfilesController>();
+    final postsController = Get.find<PostsController>();
+
     return Obx(() {
-      final posts = controller.feed;
+      final Profile me = profilesController.currentUser() ??
+          const Profile(
+            id: 'me',
+            name: 'Creator',
+            handle: '@creator',
+            status: '',
+            bio: '',
+            lastSeenLabel: '',
+            isCurrentUser: true,
+          );
+
+      final greeting = greet(name: me.name == 'You' ? 'Creator' : me.name);
+
+      final stories = <Profile>[me, ...profilesController.profiles.where((p) => !p.isCurrentUser)];
+      final allPosts = postsController.posts;
+      final topics = postsController.trendingTags(limit: 6);
+
       return CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: <Widget>[
           SliverToBoxAdapter(
-            child: _HomeHeader(greeting: controller.greeting.value, subtitle: controller.headerSubtitle.value),
+            child: _HomeHeader(
+              greeting: greeting,
+              subtitle: 'Here is what your circles are sharing today.',
+            ),
           ),
           SliverToBoxAdapter(
-            child: _StoriesSection(stories: controller.stories.toList()),
+            child: _StoriesSection(stories: stories),
           ),
           SliverToBoxAdapter(
             child: _TopicsSection(
-              topics: controller.topics.toList(),
-              title: controller.trendingTitle.value,
-              seeAllLabel: controller.seeAllLabel.value,
+              topics: topics,
+              title: 'Trending circles',
+              seeAllLabel: 'See all',
             ),
           ),
           SliverPadding(
@@ -31,11 +57,11 @@ class FeedPage extends GetView<FeedController> {
               delegate: SliverChildBuilderDelegate(
                 (BuildContext context, int index) {
                   return Padding(
-                    padding: EdgeInsets.only(bottom: index == posts.length - 1 ? 80 : 16),
-                    child: _PostCard(post: posts[index]),
+                    padding: EdgeInsets.only(bottom: index == allPosts.length - 1 ? 80 : 16),
+                    child: _PostCard(post: allPosts[index], author: profilesController.byId(allPosts[index].authorId)),
                   );
                 },
-                childCount: posts.length,
+                childCount: allPosts.length,
               ),
             ),
           ),
@@ -110,7 +136,7 @@ class _HomeHeader extends StatelessWidget {
 class _StoriesSection extends StatelessWidget {
   const _StoriesSection({required this.stories});
 
-  final List<StoryCard> stories;
+  final List<Profile> stories;
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +148,7 @@ class _StoriesSection extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemBuilder: (BuildContext context, int index) {
-          final StoryCard story = stories[index];
+          final Profile story = stories[index];
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -229,9 +255,10 @@ class _TopicsSection extends StatelessWidget {
 }
 
 class _PostCard extends StatelessWidget {
-  const _PostCard({required this.post});
+  const _PostCard({required this.post, required this.author});
 
-  final PostCard post;
+  final Post post;
+  final Profile? author;
 
   @override
   Widget build(BuildContext context) {
@@ -248,15 +275,15 @@ class _PostCard extends StatelessWidget {
             leading: CircleAvatar(
               backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
               child: Text(
-                _initial(post.authorName),
+                _initial(author?.name ?? '?'),
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             title: Text(
-              post.authorName,
+              author?.name ?? 'Unknown',
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
-            subtitle: Text('${post.authorHandle} • ${post.timeAgo}'),
+            subtitle: Text('${author?.handle ?? ''} • ${post.timeAgoLabel}'.trim()),
             trailing: IconButton(
               onPressed: () {},
               icon: const Icon(Icons.more_horiz_rounded),

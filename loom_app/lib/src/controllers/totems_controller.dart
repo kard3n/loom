@@ -1,12 +1,8 @@
 import 'package:get/get.dart';
+import 'package:loom_app/src/models/totem.dart';
 
 class TotemsController extends GetxController {
-  final RxString greeting = ''.obs;
-  final RxList<TotemCard> totems = <TotemCard>[].obs;
-
-  final RxString connectLabel = ''.obs;
-  final RxString nameLabel = ''.obs;
-  final RxString descriptionLabel = ''.obs;
+  final RxList<Totem> totems = <Totem>[].obs;
 
   @override
   void onInit() {
@@ -15,48 +11,13 @@ class TotemsController extends GetxController {
   }
 
   Future<void> load() async {
-    final data = await fetchTotemsData();
-    greeting.value = data.greeting;
-    connectLabel.value = data.connectLabel;
-    nameLabel.value = data.nameLabel;
-    descriptionLabel.value = data.descriptionLabel;
-    totems.assignAll(data.totems);
+    totems.assignAll(await fetchTotems());
   }
 
-  Future<TotemsData> fetchTotemsData() async {
-    return const TotemsData(
-      greeting: 'These are the available Totems:',
-      connectLabel: 'Connect',
-      nameLabel: 'Name',
-      descriptionLabel: 'Description',
-      totems: <TotemCard>[
-        TotemCard(name: 'xy', description: 'desc', signalStrength: 3),
-        TotemCard(name: 'ab', description: 'hello', signalStrength: 4),
-      ],
-    );
+  Future<List<Totem>> fetchTotems() async {
+    return const <Totem>[
+      Totem(id: 't1', name: 'xy', description: 'desc', signalStrength: 3),
+      Totem(id: 't2', name: 'ab', description: 'hello', signalStrength: 4),
+    ];
   }
-}
-
-class TotemCard {
-  const TotemCard({required this.name, required this.description, required this.signalStrength});
-
-  final String name;
-  final String description;
-  final int signalStrength;
-}
-
-class TotemsData {
-  const TotemsData({
-    required this.greeting,
-    required this.connectLabel,
-    required this.nameLabel,
-    required this.descriptionLabel,
-    required this.totems,
-  });
-
-  final String greeting;
-  final String connectLabel;
-  final String nameLabel;
-  final String descriptionLabel;
-  final List<TotemCard> totems;
 }
