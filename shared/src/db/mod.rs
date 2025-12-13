@@ -10,8 +10,8 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn new() -> Database {
-        let conn = Connection::open_in_memory().unwrap();
+    pub fn new(path: String) -> Database {
+        let conn = Connection::open(path).unwrap();
 
         // Create tables
 
@@ -191,7 +191,8 @@ mod tests {
     use std::ops::{Add, Sub};
     #[test]
     fn test_write_read() {
-        let db = Database::new();
+        std::fs::remove_file("test.db".to_string());
+        let db = Database::new("test.db".to_string());
 
         let user = User {
             uuid: "550e8400-e29b-41d4-a716-446655440000".try_into().unwrap(),
