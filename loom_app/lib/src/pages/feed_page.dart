@@ -98,6 +98,145 @@ class _FeedPageState extends State<FeedPage> {
   }
 }
 
+// --- Neue Seiten-Templates ---
+
+/// Generisches Scaffold für eine neue Seite
+class _GenericPage extends StatelessWidget {
+  const _GenericPage({required this.title, this.content = 'Inhalt der Seite'});
+
+  final String title;
+  final String content;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+      ),
+      body: Center(
+        child: Text(content, style: Theme.of(context).textTheme.titleLarge),
+      ),
+    );
+  }
+}
+
+void _navigateToPage(BuildContext context, Widget page) {
+  Navigator.of(context).push(
+    MaterialPageRoute<Widget>(
+      builder: (BuildContext _) => page,
+    ),
+  );
+}
+
+class SearchPage extends StatelessWidget {
+  const SearchPage({super.key});
+  @override
+  Widget build(BuildContext context) => const _GenericPage(title: 'Suchen', content: 'Suchfeld und Ergebnisse');
+}
+
+class QrScannerPage extends StatelessWidget {
+  const QrScannerPage({super.key});
+  @override
+  Widget build(BuildContext context) => const _GenericPage(title: 'QR-Code Scanner', content: 'Kameraansicht für den Scan');
+}
+
+class CreateStoryPage extends StatelessWidget {
+  const CreateStoryPage({super.key});
+  @override
+  Widget build(BuildContext context) => const _GenericPage(title: 'Story erstellen', content: 'Story-Erstellung mit Kamera/Galerie');
+}
+
+class ViewStoryPage extends StatelessWidget {
+  const ViewStoryPage({super.key, required this.storyName});
+  final String storyName;
+  @override
+  Widget build(BuildContext context) => _GenericPage(title: 'Story von $storyName', content: 'Anzeige der Story');
+}
+
+class PostOptionsPage extends StatelessWidget {
+  const PostOptionsPage({super.key});
+  @override
+  Widget build(BuildContext context) => const _GenericPage(title: 'Post-Optionen', content: 'Melden, Teilen, Verbergen, etc.');
+}
+
+class PostLikersPage extends StatelessWidget {
+  const PostLikersPage({super.key});
+  @override
+  Widget build(BuildContext context) => const _GenericPage(title: 'Likes', content: 'Liste der Personen, denen es gefällt');
+}
+
+class PostCommentsPage extends StatelessWidget {
+  const PostCommentsPage({super.key});
+  @override
+  Widget build(BuildContext context) => const _GenericPage(title: 'Kommentare', content: 'Liste der Kommentare und Eingabefeld');
+}
+
+class PostSharePage extends StatelessWidget {
+  const PostSharePage({super.key});
+  @override
+  Widget build(BuildContext context) => const _GenericPage(title: 'Teilen', content: 'Optionen zum Teilen des Posts');
+}
+
+class PostBookmarkPage extends StatelessWidget {
+  const PostBookmarkPage({super.key});
+  @override
+  Widget build(BuildContext context) => const _GenericPage(title: 'Lesezeichen', content: 'Post zu Lesezeichen hinzugefügt');
+}
+
+// Window for trending topics when see all is pressed
+
+class SeeAllTopicsWindow extends StatelessWidget {
+  const SeeAllTopicsWindow({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final List<String> allTopics = <String>[
+      'Product Design',
+      'Playoffs',
+      'City Nights',
+      'SaaS',
+      'Wellness',
+      'Tech News',
+      'Startups',
+      'Remote Work',
+      'Mental Health',
+      'Travel',
+      'Photography',
+      'Music',
+    ];
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Alle Trend-Kreise'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: allTopics
+              .map(
+                (String topic) => Chip(
+                  label: Text('#$topic'),
+                  backgroundColor: theme.colorScheme.surface,
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+// Opens a new page showing all topics when see all is pressed
+
+void _SeeAllTopicsPage (BuildContext context) {
+  _navigateToPage(context, const SeeAllTopicsWindow());
+}
+
+// --- Komponenten mit hinzugefügten Aktionen ---
+
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({required this.greeting});
 
@@ -139,18 +278,18 @@ class _HomeHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Here is what your circles are sharing today.',
+                  'Hier ist, was deine Kreise heute teilen.',
                   style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: () => _navigateToPage(context, const SearchPage()), // *ACTION: Search Page*
             icon: const Icon(Icons.search_rounded),
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: () => _navigateToPage(context, const QrScannerPage()), // *ACTION: QR Scanner Page*
             icon: const Icon(Icons.qr_code_scanner_rounded),
           ),
         ],
@@ -175,57 +314,70 @@ class _StoriesSection extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         itemBuilder: (BuildContext context, int index) {
           final _Story story = stories[index];
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: story.isCurrentUser
-                      ? LinearGradient(
-                          colors: <Color>[
-                            theme.colorScheme.primary,
-                            theme.colorScheme.secondary,
-                          ],
-                        )
-                      : const LinearGradient(
-                          colors: <Color>[Color(0xFFFA709A), Color(0xFFFEE140)],
-                        ),
-                ),
-                child: Container(
-                  margin: const EdgeInsets.all(3),
+
+          void onStoryTap() {
+            if (story.isCurrentUser) {
+              _navigateToPage(context, const CreateStoryPage()); // *ACTION: Create Story*
+            } else {
+              _navigateToPage(context, ViewStoryPage(storyName: story.name)); // *ACTION: View Story*
+            }
+          }
+
+          return InkWell( // Fügen Sie InkWell hinzu, um den ganzen Bereich antippbar zu machen
+            onTap: onStoryTap,
+            borderRadius: BorderRadius.circular(50),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Container(
+                  width: 72,
+                  height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: CircleAvatar(
-                    backgroundColor: story.isCurrentUser
-                        ? theme.colorScheme.primary
-                        : const Color(0xFFE0E6F5),
-                    child: story.isCurrentUser
-                        ? const Icon(Icons.add_rounded, color: Colors.white)
-                        : Text(
-                            _initial(story.name),
-                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    gradient: story.isCurrentUser
+                        ? LinearGradient(
+                            colors: <Color>[
+                              theme.colorScheme.primary,
+                              theme.colorScheme.secondary,
+                            ],
+                          )
+                        : const LinearGradient(
+                            colors: <Color>[Color(0xFFFA709A), Color(0xFFFEE140)],
                           ),
                   ),
+                  child: Container(
+                    margin: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: CircleAvatar(
+                      backgroundColor: story.isCurrentUser
+                          ? theme.colorScheme.primary
+                          : const Color(0xFFE0E6F5),
+                      child: story.isCurrentUser
+                          ? const Icon(Icons.add_rounded, color: Colors.white)
+                          : Text(
+                              _initial(story.name),
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: 72,
-                child: Text(
-                  story.name,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: 72,
+                  child: Text(
+                    story.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
         separatorBuilder: (_, __) => const SizedBox(width: 12),
@@ -233,62 +385,6 @@ class _StoriesSection extends StatelessWidget {
       ),
     );
   }
-}
-
-// Window for trending topics when see all is pressed
-
-class SeeAllTopicsWindow extends StatelessWidget {
-  const SeeAllTopicsWindow({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final List<String> allTopics = <String>[
-      'Product Design',
-      'Playoffs',
-      'City Nights',
-      'SaaS',
-      'Wellness',
-      'Tech News',
-      'Startups',
-      'Remote Work',
-      'Mental Health',
-      'Travel',
-      'Photography',
-      'Music',
-    ];
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('All Trending Circles'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: allTopics
-              .map(
-                (String topic) => Chip(
-                  label: Text('#$topic'),
-                  backgroundColor: theme.colorScheme.surface,
-                  side: BorderSide(color: theme.colorScheme.outlineVariant),
-                ),
-              )
-              .toList(),
-        ),
-      ),
-    );
-  }
-}
-
-// Opens a new page showing all topics when see all is pressed
-
-void _SeeAllTopicsPage (BuildContext context) {
-  Navigator.of(context).push(
-    MaterialPageRoute<SeeAllTopicsWindow>(
-      builder: (BuildContext _) => const SeeAllTopicsWindow(),
-    ),
-  );
 }
 
 class _TopicsSection extends StatelessWidget {
@@ -308,10 +404,10 @@ class _TopicsSection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Text(
-                'Trending circles',
+                'Trend-Kreise',
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
-              TextButton(onPressed: () => _SeeAllTopicsPage(context), child: const Text('See all')),
+              TextButton(onPressed: () => _SeeAllTopicsPage(context), child: const Text('Alle anzeigen')), // *ACTION: See All Topics Page*
             ],
           ),
           const SizedBox(height: 8),
@@ -364,7 +460,7 @@ class _PostCard extends StatelessWidget {
             ),
             subtitle: Text('${post.authorHandle} • ${post.timeAgo}'),
             trailing: IconButton(
-              onPressed: () {},
+              onPressed: () => _navigateToPage(context, const PostOptionsPage()), // *ACTION: Post Options Page*
               icon: const Icon(Icons.more_horiz_rounded),
             ),
           ),
@@ -428,11 +524,23 @@ class _PostCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: <Widget>[
-                _PostStat(icon: Icons.favorite_border_rounded, value: post.likes),
-                _PostStat(icon: Icons.mode_comment_outlined, value: post.comments),
-                _PostStat(icon: Icons.repeat_rounded, value: post.shares),
+                _PostStat(
+                  icon: Icons.favorite_border_rounded, 
+                  value: post.likes, 
+                  onPressed: () => _navigateToPage(context, const PostLikersPage()), // *ACTION: Likes Page*
+                ),
+                _PostStat(
+                  icon: Icons.mode_comment_outlined, 
+                  value: post.comments, 
+                  onPressed: () => _navigateToPage(context, const PostCommentsPage()), // *ACTION: Comments Page*
+                ),
+                _PostStat(
+                  icon: Icons.repeat_rounded, 
+                  value: post.shares, 
+                  onPressed: () => _navigateToPage(context, const PostSharePage()), // *ACTION: Share Page*
+                ),
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () => _navigateToPage(context, const PostBookmarkPage()), // *ACTION: Bookmark Page*
                   icon: const Icon(Icons.bookmark_outline_rounded),
                 ),
               ],
@@ -445,16 +553,17 @@ class _PostCard extends StatelessWidget {
 }
 
 class _PostStat extends StatelessWidget {
-  const _PostStat({required this.icon, required this.value});
+  const _PostStat({required this.icon, required this.value, required this.onPressed});
 
   final IconData icon;
   final int value;
+  final VoidCallback onPressed; // Hinzugefügte Action
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     return TextButton.icon(
-      onPressed: () {},
+      onPressed: onPressed, // Aktion verwenden
       icon: Icon(icon, size: 20),
       label: Text(value.toString(), style: theme.textTheme.labelLarge),
     );
