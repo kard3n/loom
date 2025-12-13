@@ -167,6 +167,97 @@ impl Database {
             },
         );
     }
+
+    pub fn get_all_users(&self) -> rusqlite::Result<Vec<User>> {
+        let mut stmt = self.connection.prepare(
+            "SELECT uuid, username, status, bio, profile_picture, last_contact FROM users"
+        )?;
+
+        let iter = stmt.query_map([], |row| {
+            Ok(User {
+                uuid: get_heapless(row, 0)?,
+                username: get_heapless(row, 1)?,
+                status: get_heapless(row, 2)?,
+                bio: get_heapless(row, 3)?,
+                profile_picture: row.get::<_, Option<String>>(4)?
+                    .map(|s| s.parse().expect("Failed to parse image string")),
+                last_contact: row.get(5)?,
+            })
+        })?;
+
+        iter.collect()
+    }
+
+    pub fn get_all_totems(&self) -> rusqlite::Result<Vec<Totem>> {
+        let mut stmt = self.connection.prepare(
+            "SELECT uuid, name, location, last_contact FROM totems"
+        )?;
+
+        let iter = stmt.query_map([], |row| {
+            Ok(Totem {
+                uuid: get_heapless(row, 0)?,
+                name: get_heapless(row, 1)?,
+                location: get_heapless(row, 2)?,
+                last_contact: row.get(3)?,
+            })
+        })?;
+
+        iter.collect()
+    }
+
+    pub fn get_all_posts(&self) -> rusqlite::Result<Vec<Post>> {
+        let mut stmt = self.connection.prepare(
+            "SELECT uuid, user_id, title, body, timestamp, image, source_totem FROM posts"
+        )?;
+
+        let iter = stmt.query_map([], |row| {
+            // distinct handling for the Optional Image
+            let image_opt: Option<std::string::String> = row.get(5)?;
+
+            Ok(Post {
+                uuid: get_heapless(row, 0)?,
+                user_id: get_heapless(row, 1)?,
+                title: get_heapless(row, 2)?,
+                body: get_heapless(row, 3)?,
+                timestamp: row.get(4)?,
+                image: row.get::<_, Option<String>>(4)?
+                    .map(|s| s.parse().expect("Failed to parse image string")),
+                source_totem: get_heapless(row, 0)?,
+            })
+        })?;
+
+        iter.collect()
+    }
+
+    pub fn update_totem_last_contact(&self, uuid: &str, last_contact: DateTime<Utc>) -> rusqlite::Result<()> {
+        // We pass the DateTime object directly; rusqlite formats it
+        self.connection.execute(
+            "UPDATE totems SET last_contact = ?1 WHERE uuid = ?2",
+            params![last_contact, uuid],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_user(&self, user: &User) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "UPDATE users
+             SET username = ?1,
+                 status = ?2,
+                 bio = ?3,
+                 profile_picture = ?4,
+                 last_contact = ?5
+             WHERE uuid = ?6",
+            params![
+                &user.username.as_str(),
+                &user.status.as_str(),
+                &user.bio.as_str(),
+                &user.profile_picture.as_ref().map(|i| i.to_string()),
+                &user.last_contact,
+                &user.uuid.as_str()
+            ],
+        )?;
+        Ok(())
+    }
 }
 
 /// Helper function to fetch text from an SQL result and convert to heapless::String
