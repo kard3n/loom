@@ -4,6 +4,7 @@ import 'package:loom_app/src/pages/circle_page.dart';
 import 'package:loom_app/src/pages/clips_page.dart';
 import 'package:loom_app/src/pages/feed_page.dart';
 import 'package:loom_app/src/pages/inbox_page.dart';
+import 'package:loom_app/src/pages/totems_page.dart';
 import 'package:loom_app/src/rust/frb_generated.dart';
 
 Future<void> main() async {
@@ -55,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _NavigationItem(
         label: 'Circle',
         icon: Icons.people_alt_rounded,
-        page: const CirclePage(),
+        page: const TotemsPage(),
         fabLabel: 'Start room',
         fabIcon: Icons.mic_none_rounded,
         onFabTap: () => _showAction('Launch an audio room'),
