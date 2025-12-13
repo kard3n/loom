@@ -8,6 +8,9 @@ import 'package:loom_app/src/rust/frb_generated.dart';
 import 'package:flutter/services.dart';
 
 // ------------------- MAIN -------------------
+import 'package:flutter/services.dart';
+
+// ------------------- MAIN -------------------
 
 Future<void> main() async {
   // Ensure that Flutter is bound before RustLib is initialized
@@ -443,6 +446,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openComposeWindow() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const Compose()),
+    );
+  }
+
+  void _openNewTotemWindow() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const NewTotem()),
+    );
+  }
+
+  void _openInviteFriendsWindow() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const InviteFriends()),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -454,6 +478,7 @@ class _HomeScreenState extends State<HomeScreen> {
         fabLabel: 'Compose',
         fabIcon: Icons.edit_rounded,
         onFabTap: () => _openComposeWindow(),
+        onFabTap: () => _openComposeWindow(),
       ),
       _NavigationItem(
         label: 'Totems',
@@ -462,6 +487,7 @@ class _HomeScreenState extends State<HomeScreen> {
         fabLabel: 'New totem',
         fabIcon: Icons.auto_fix_high_rounded,
         onFabTap: () => _openNewTotemWindow(),
+        onFabTap: () => _openNewTotemWindow(),
       ),
       _NavigationItem(
         label: 'Friends',
@@ -469,6 +495,7 @@ class _HomeScreenState extends State<HomeScreen> {
         page: const FriendsPage(),
         fabLabel: 'Invite',
         fabIcon: Icons.person_add_alt_1_rounded,
+        onFabTap: () => _openInviteFriendsWindow(),
         onFabTap: () => _openInviteFriendsWindow(),
       ),
       _NavigationItem(
@@ -542,3 +569,5 @@ class _NavigationItem {
   final IconData? fabIcon;
   final VoidCallback? onFabTap;
 }
+
+

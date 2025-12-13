@@ -118,11 +118,15 @@ class FriendsPage extends StatelessWidget {
                                   Text(
                                     friend.name,
                                     style: sectionTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     friend.location,
                                     style: sectionTheme.textTheme.bodySmall,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
@@ -142,6 +146,8 @@ class FriendsPage extends StatelessWidget {
                         Text(
                           friend.status,
                           style: sectionTheme.textTheme.bodyLarge,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 12),
                         Wrap(
