@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:loom_app/src/pages/friends_page.dart';
 import 'package:loom_app/src/pages/feed_page.dart';
 import 'package:loom_app/src/pages/saved_page.dart';

@@ -9,28 +9,28 @@ class FriendsPage extends StatelessWidget {
     _Friend(
       name: 'Ava Chen',
       status: 'Sketching new identity for Loom.',
-      location: 'Brooklyn, NY',
+      last_seen: '19 hours ago',
       vibe: Color(0xFFFF8A80),
       tags: <String>['Design mode', 'Streaming'],
     ),
     _Friend(
       name: 'Miles Carter',
       status: 'Pair programming with community.',
-      location: 'Austin, TX',
+      last_seen: '15 minutes ago',
       vibe: Color(0xFFFFB74D),
       tags: <String>['Live now'],
     ),
     _Friend(
       name: 'Sasha Park',
       status: 'Collecting Qs for AMA tomorrow.',
-      location: 'Seattle, WA',
+      last_seen: '4 days ago',
       vibe: Color(0xFF9575CD),
       tags: <String>['Focus', 'Audio'],
     ),
     _Friend(
       name: 'Lina Patel',
       status: 'Planning the winter retreat.',
-      location: 'Remote',
+      last_seen: '42 seconds ago',
       vibe: Color(0xFF4FC3F7),
       tags: <String>['Travel', 'Docs open'],
     ),
@@ -121,7 +121,7 @@ class FriendsPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    friend.location,
+                                    friend.last_seen,
                                     style: sectionTheme.textTheme.bodySmall,
                                   ),
                                 ],
@@ -242,14 +242,14 @@ class _Friend {
   const _Friend({
     required this.name,
     required this.status,
-    required this.location,
+    required this.last_seen,
     required this.vibe,
     required this.tags,
   });
 
   final String name;
   final String status;
-  final String location;
+  final String last_seen;
   final Color vibe;
   final List<String> tags;
 }
