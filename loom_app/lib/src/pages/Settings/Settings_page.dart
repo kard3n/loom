@@ -12,7 +12,7 @@ final settingsNavigationItem = _NavigationItem(
   onFabTap: () {}, // Trigger search focus
 );
 
-class SettingsPage extends GetView<SettingsController> {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
   @override
@@ -41,7 +41,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
         ),
-
+        
         Expanded(
           child: ListView(
             physics: const BouncingScrollPhysics(),

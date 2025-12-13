@@ -1,34 +1,32 @@
 use chrono::{DateTime, Utc};
-use heapless::String;
 
-pub static UUID_SIZE: usize = 36;
 
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub struct User{
-    pub uuid: String<UUID_SIZE>,
-    pub username: String<64>,
-    pub status: String<128>,
-    pub bio: String<1024>,
-    pub profile_picture: String<UUID_SIZE>,
+    pub uuid: String,
+    pub username: String,
+    pub status: String,
+    pub bio: String,
+    pub profile_picture: Option<String>,
     pub last_contact: DateTime<Utc>,
 }
 
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub struct Post{
-    pub uuid: String<UUID_SIZE>,
-    pub user_id: String<UUID_SIZE>,
-    pub title: String<256>,
-    pub body: String<2048>,
+    pub uuid: String,
+    pub user_id: String,
+    pub title: String,
+    pub body: String,
     pub timestamp: DateTime<Utc>,
-    pub image: String<UUID_SIZE>,
-    pub source_totem: String<UUID_SIZE>,
+    pub image: Option<String>,
+    pub source_totem: String,
 }
 
 pub struct Totem{
-    pub uuid: String<UUID_SIZE>,
-    pub name: String<128>,
-    pub location: String<256>,
+    pub uuid: String,
+    pub name: String,
+    pub location: String,
     pub last_contact: DateTime<Utc>,
 }

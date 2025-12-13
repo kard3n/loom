@@ -35,6 +35,7 @@ dependencies = [
  "anyhow",
  "atomic",
  "backtrace",
+ "chrono",
 ]
 
 [[package]]
@@ -297,6 +298,7 @@ dependencies = [
  "build-target",
  "bytemuck",
  "byteorder",
+ "chrono",
  "console_error_panic_hook",
  "dart-sys",
  "delegate-attr",
@@ -781,6 +783,8 @@ dependencies = [
 name = "rust_lib_loom_app"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "chrono",
  "flutter_rust_bridge",
  "shared",
 ]
