@@ -20,8 +20,10 @@ impl Database {
             "CREATE TABLE IF NOT EXISTS users (
             uuid  TEXT PRIMARY KEY,
             username  TEXT NOT NULL,
+            status TEXT NOT NULL,
             bio  TEXT NOT NULL,
-            profile_picture TEXT NOT NULL
+            profile_picture TEXT NOT NULL,
+            last_contact TEXT NOT NULL
         )",
             (),
         )
@@ -62,12 +64,14 @@ impl Database {
     pub fn create_user(&self, user: &User) {
         self.connection
             .execute(
-                "INSERT INTO users (uuid, username, bio, profile_picture) VALUES (?1, ?2, ?3, ?4)",
+                "INSERT INTO users (uuid, username, status, bio, profile_picture, last_contact) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
                 (
                     &user.uuid.to_string(),
                     &user.username.to_string(),
+                    &user.status.to_string(),
                     &user.bio.to_string(),
                     &user.profile_picture.to_string(),
+                    &user.last_contact
                 ),
             )
             .expect("Failed to create user.");
@@ -147,14 +151,16 @@ impl Database {
 
     pub fn get_user_by_id(&self, uuid: &str) -> rusqlite::Result<User> {
         return self.connection.query_row(
-            "SELECT uuid, username, bio, profile_picture FROM users WHERE uuid = ?1",
+            "SELECT uuid, username, status, bio, profile_picture, last_contact FROM users WHERE uuid = ?1",
             params![uuid],
             |row| {
                 Ok(User {
                     uuid: get_heapless(row, 0)?,
                     username: get_heapless(row, 1)?,
-                    bio: get_heapless(row, 2)?,
-                    profile_picture: get_heapless(row, 3)?,
+                    status: get_heapless(row, 2)?,
+                    bio: get_heapless(row, 3)?,
+                    profile_picture: get_heapless(row, 4)?,
+                    last_contact: row.get(5)?,
                 })
             },
         );
@@ -190,8 +196,10 @@ mod tests {
         let user = User {
             uuid: "550e8400-e29b-41d4-a716-446655440000".try_into().unwrap(),
             username: "tag".try_into().unwrap(),
+            status: "Online".try_into().unwrap(),
             bio: "bio".try_into().unwrap(),
             profile_picture: "123e4567-e89b-12d3-a456-426697174000".try_into().unwrap(),
+            last_contact: Utc::now(),
         };
 
         let totem = Totem {
