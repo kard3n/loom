@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loom_app/src/models/post.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
@@ -8,84 +9,170 @@ import 'package:uuid/uuid.dart';
 class PostsController extends GetxController {
   final RxList<Post> posts = <Post>[].obs;
 
+  // Stores the current user's UUID. Default is empty until loaded.
+  final RxString currentUserId = "".obs;
+
   @override
   void onInit() {
     super.onInit();
-    loadPosts();
+    // 1. Check identity first, then load posts
+    checkUserIdentity().then((_) => loadPosts());
   }
 
-  /// Helper to get the correct path for the database on the phone
-  Future<String> _getDatabasePath() async {
-    final directory = await getApplicationDocumentsDirectory();
-    return "${directory.path}/loom_app.db";
-  }
-
-  /// Ensures the 'me' user and 'mobile_app' totem exist to prevent Foreign Key errors.
-  Future<void> _bootstrapDatabase(rust.AppDatabase db) async {
-    final now = DateTime.now().toUtc();
-
-    // 1. Ensure Default User ("me") exists
+  /// Checks if a local file containing the user UUID exists.
+  /// If not, it triggers the registration flow.
+  Future<void> checkUserIdentity() async {
     try {
-      // Try to find the user first
-      await db.getUserById(uuid: "me");
-    } catch (_) {
-      // If not found (error thrown), create them
-      print("Bootstrapping: Creating default user 'me'");
-      await db.createUser(
-        user: rust.User(
-          uuid: "me",
-          username: "Creator",
-          status: "Active",
-          bio: "This is the local user.",
-          lastContact: now,
-          profilePicture: null,
-        ),
-      );
-    }
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File("${dir.path}/user_identity.txt");
 
-    // 2. Ensure Default Totem ("mobile_app") exists
-    // Since we don't have getTotemById generated, we try to create it.
-    // If it exists, the database will throw a constraint error, which we catch and ignore.
+      if (await file.exists()) {
+        // A. User exists: Read UUID and set state
+        final storedUuid = await file.readAsString();
+        currentUserId.value = storedUuid.trim();
+        print("Logged in as: $storedUuid");
+      } else {
+        // B. New User: Generate UUID and show Dialog
+        final newUuid = const Uuid().v4();
+
+        // We need a slight delay to ensure the UI is ready for the dialog
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        if (Get.context != null) {
+          _showRegistrationDialog(Get.context!, newUuid, file);
+        }
+      }
+    } catch (e) {
+      print("Error checking identity: $e");
+    }
+  }
+
+  /// Shows a dialog asking for details, then saves the user to Rust & File.
+  void _showRegistrationDialog(BuildContext context, String newUuid, File identityFile) {
+    final nameCtrl = TextEditingController();
+    final bioCtrl = TextEditingController();
+    final statusCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must register
+      builder: (ctx) => AlertDialog(
+        title: const Text("Welcome!"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("It looks like you are new. Please create your profile."),
+              const SizedBox(height: 20),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: "Username", border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: statusCtrl,
+                decoration: const InputDecoration(labelText: "Status (e.g. Online)", border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: bioCtrl,
+                decoration: const InputDecoration(labelText: "Bio", border: OutlineInputBorder()),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () async {
+              if (nameCtrl.text.isNotEmpty) {
+                // 1. Create User in Rust DB
+                await _registerUserInDb(
+                  uuid: newUuid,
+                  username: nameCtrl.text,
+                  status: statusCtrl.text,
+                  bio: bioCtrl.text,
+                );
+
+                // 2. Save UUID to local file
+                await identityFile.writeAsString(newUuid);
+
+                // 3. Update State
+                currentUserId.value = newUuid;
+
+                Navigator.pop(ctx); // Close Dialog
+                loadPosts(); // Reload to reflect changes
+              }
+            },
+            child: const Text("Create Profile"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _registerUserInDb({
+    required String uuid,
+    required String username,
+    required String status,
+    required String bio
+  }) async {
+    final dbPath = await _getDatabasePath();
+    final db = await rust.AppDatabase(path: dbPath);
+
+    await db.createUser(
+        user: rust.User(
+          uuid: uuid,
+          username: username,
+          status: status,
+          bio: bio,
+          lastContact: DateTime.now().toUtc(),
+          profilePicture: null,
+        )
+    );
+
+    // Also ensure the default Totem exists
     try {
       await db.createTotem(
         totem: rust.Totem(
           uuid: "mobile_app",
           name: "My Phone",
           location: "Here",
-          lastContact: now,
+          lastContact: DateTime.now().toUtc(),
         ),
       );
-    } catch (_) {
-      // Ignore "Unique constraint failed" errors
-    }
+    } catch (_) {}
+  }
+
+  Future<String> _getDatabasePath() async {
+    final directory = await getApplicationDocumentsDirectory();
+    return "${directory.path}/loom_app.db";
   }
 
   Future<void> loadPosts() async {
     try {
       final dbPath = await _getDatabasePath();
       final database = await rust.AppDatabase(path: dbPath);
-
-      // FIX: Ensure dependencies exist before we try to read/write posts
-      await _bootstrapDatabase(database);
-
       final rustPosts = await database.getAllPosts();
 
-      // Convert and update UI
-      // Reversing the list so newest posts appear at the top
-      posts.assignAll(
-        rustPosts.map((p) => p.toFlutterPost()).toList().reversed.toList(),
-      );
+      posts.assignAll(rustPosts.map((p) => p.toFlutterPost()).toList().reversed.toList());
     } catch (e) {
       print("Error loading posts: $e");
     }
   }
 
-  Future<void> addPost(String title, String body, String authorId) async {
+  Future<void> addPost(String title, String body) async {
+    // Check if we have a valid user ID before posting
+    if (currentUserId.value.isEmpty) {
+      Get.snackbar("Error", "You are not logged in.");
+      return;
+    }
+
     try {
       final newPost = rust.Post(
         uuid: const Uuid().v4(),
-        userId: authorId,
-        title: title.isEmpty ? "Untitled" : title, // Use provided title
+        userId: currentUserId.value, // Use the dynamic ID
+        title: title.isEmpty ? "Untitled" : title,
         body: body,
         timestamp: DateTime.now().toUtc(),
         sourceTotem: "mobile_app",
@@ -103,6 +190,7 @@ class PostsController extends GetxController {
     }
   }
 
+  // ... (Trending Tags and Clips helpers remain the same)
   List<String> trendingTags({int limit = 8}) {
     final counts = <String, int>{};
     for (final post in posts) {
@@ -118,8 +206,7 @@ class PostsController extends GetxController {
   List<Post> clips() => posts.where((p) => p.isClip).toList(growable: false);
 }
 
-// --- Extensions ---
-
+// ... (Keep your PostMapper extension here)
 extension PostMapper on rust.Post {
   Post toFlutterPost() {
     return Post(
@@ -132,7 +219,6 @@ extension PostMapper on rust.Post {
       likes: 0,
       comments: 0,
       shares: 0,
-      // FIX: Extract hashtags from the body text so trending works
       tags: _extractTags(body),
       isClip: false,
     );
@@ -144,10 +230,8 @@ extension PostMapper on rust.Post {
   }
 
   String _formatTimeAgo(DateTime dt) {
-    // Convert UTC to local time for display
     final localDt = dt.toLocal();
     final diff = DateTime.now().difference(localDt);
-
     if (diff.inDays > 0) return '${diff.inDays}d ago';
     if (diff.inHours > 0) return '${diff.inHours}h ago';
     if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';

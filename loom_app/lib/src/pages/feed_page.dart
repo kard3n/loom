@@ -5,9 +5,46 @@ import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/post.dart';
 import 'package:loom_app/src/models/profile.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
+import 'package:path_provider/path_provider.dart'; // REQUIRED: Add this import
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
+
+  /// Helper to fetch the real user from Rust and map it to the UI Profile model
+  Future<Profile> _fetchRealProfile(String uuid) async {
+    try {
+      // 1. Open the DB (Duplicating path logic here for safety)
+      final directory = await getApplicationDocumentsDirectory();
+      final dbPath = "${directory.path}/loom_app.db";
+      final database = await rust.AppDatabase(path: dbPath);
+
+      // 2. Fetch user from Rust
+      final rustUser = await database.getUserById(uuid: uuid);
+
+      // 3. Map to Profile
+      return Profile(
+        id: rustUser.uuid,
+        name: rustUser.username,
+        handle: '@${rustUser.username.toLowerCase().replaceAll(' ', '')}',
+        status: rustUser.status,
+        bio: rustUser.bio,
+        lastSeenLabel: 'Now',
+        isCurrentUser: true,
+      );
+    } catch (e) {
+      // Fallback if something goes wrong (e.g. user not created yet)
+      print("Error fetching profile: $e");
+      return const Profile(
+        id: 'me',
+        name: 'Creator',
+        handle: '@creator',
+        status: 'Offline',
+        bio: '',
+        lastSeenLabel: '',
+        isCurrentUser: true,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,9 +55,12 @@ class FeedPage extends StatelessWidget {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          final me = profilesController.currentUser();
-          if (me != null) {
-            _showSophisticatedPostSheet(context, me.id);
+          // Use the real ID from the controller
+          final currentUserId = postsController.currentUserId.value;
+          if (currentUserId.isNotEmpty) {
+            _showSophisticatedPostSheet(context, currentUserId);
+          } else {
+            Get.snackbar("Error", "Please wait for login to finish");
           }
         },
         icon: const Icon(Icons.edit_rounded),
@@ -28,65 +68,76 @@ class FeedPage extends StatelessWidget {
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
       ),
+      // We wrap the body in Obx to listen for changes in currentUserId
       body: Obx(() {
-        final Profile me = profilesController.currentUser() ??
-            const Profile(
-              id: 'me',
-              name: 'Creator',
-              handle: '@creator',
-              status: '',
-              bio: '',
-              lastSeenLabel: '',
-              isCurrentUser: true,
-            );
+        final currentUuid = postsController.currentUserId.value;
 
-        final greeting = rust.greet(name: me.name);
+        // If we don't have an ID yet, show loading
+        if (currentUuid.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-        final stories = <Profile>[
-          me,
-          ...profilesController.profiles.where((p) => !p.isCurrentUser)
-        ];
-        final allPosts = postsController.posts;
-        final topics = postsController.trendingTags(limit: 6);
+        // Use FutureBuilder to fetch the detailed user data from Rust
+        return FutureBuilder<Profile>(
+          future: _fetchRealProfile(currentUuid),
+          builder: (context, snapshot) {
+            // While fetching the specific user details...
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        return CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: <Widget>[
-            SliverToBoxAdapter(
-              child: _HomeHeader(
-                greeting: greeting,
-                subtitle: 'Here is what your circles are sharing today.',
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: _StoriesSection(stories: stories),
-            ),
-            SliverToBoxAdapter(
-              child: _TopicsSection(
-                topics: topics,
-                title: 'Trending circles',
-                seeAllLabel: 'See all',
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                      (BuildContext context, int index) {
-                    return Padding(
-                      padding: EdgeInsets.only(
-                          bottom: index == allPosts.length - 1 ? 80 : 16),
-                      child: _PostCard(
-                          post: allPosts[index],
-                          author: profilesController
-                              .byId(allPosts[index].authorId)),
-                    );
-                  },
-                  childCount: allPosts.length,
+            final Profile me = snapshot.data!;
+            final greeting = rust.greet(name: me.name);
+
+            // Combine 'me' with other fake profiles for the stories bar
+            final stories = <Profile>[
+              me,
+              ...profilesController.profiles.where((p) => !p.isCurrentUser)
+            ];
+
+            final allPosts = postsController.posts;
+            final topics = postsController.trendingTags(limit: 6);
+
+            return CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: <Widget>[
+                SliverToBoxAdapter(
+                  child: _HomeHeader(
+                    greeting: greeting,
+                    subtitle: 'Here is what your circles are sharing today.',
+                  ),
                 ),
-              ),
-            ),
-          ],
+                SliverToBoxAdapter(
+                  child: _StoriesSection(stories: stories),
+                ),
+                SliverToBoxAdapter(
+                  child: _TopicsSection(
+                    topics: topics,
+                    title: 'Trending circles',
+                    seeAllLabel: 'See all',
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                        return Padding(
+                          padding: EdgeInsets.only(
+                              bottom: index == allPosts.length - 1 ? 80 : 16),
+                          child: _PostCard(
+                              post: allPosts[index],
+                              author: profilesController
+                                  .byId(allPosts[index].authorId)),
+                        );
+                      },
+                      childCount: allPosts.length,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       }),
     );
@@ -95,7 +146,7 @@ class FeedPage extends StatelessWidget {
   void _showSophisticatedPostSheet(BuildContext context, String authorId) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Full screen capability
+      isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
@@ -106,7 +157,7 @@ class FeedPage extends StatelessWidget {
   }
 }
 
-// --- UPDATED SHEET CONTENT ---
+// --- SHEET CONTENT (Unchanged) ---
 class _CreatePostSheetContent extends StatefulWidget {
   final String authorId;
   const _CreatePostSheetContent({required this.authorId});
@@ -120,16 +171,12 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
   final TextEditingController _bodyController = TextEditingController();
 
   void _handlePost() {
-    // Check if at least one field has text
     if (_titleController.text.trim().isNotEmpty ||
         _bodyController.text.trim().isNotEmpty) {
-
       Get.find<PostsController>().addPost(
           _titleController.text,
-          _bodyController.text,
-          widget.authorId
+          _bodyController.text
       );
-
       Navigator.pop(context);
     }
   }
@@ -150,7 +197,6 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // --- Header ---
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -170,8 +216,6 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
             ],
           ),
           const Divider(height: 30),
-
-          // --- Title Input ---
           TextField(
             controller: _titleController,
             decoration: const InputDecoration(
@@ -182,8 +226,6 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
             style: theme.textTheme.titleMedium,
           ),
           const Divider(),
-
-          // --- Body Input ---
           Expanded(
             flex: 0,
             child: TextField(
@@ -199,15 +241,11 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
               ),
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // --- Actions Row (Images, Tags) ---
           Row(
             children: [
               IconButton(
                 onPressed: () {
-                  // Placeholder for Image Picker
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Open image picker...')),
                   );
@@ -217,7 +255,6 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
               ),
               IconButton(
                 onPressed: () {
-                  // Placeholder for Tag Editor
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Open tag editor...')),
                   );
@@ -227,7 +264,7 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
               ),
               const Spacer(),
               Text(
-                "0/280", // You can wire this up to _bodyController.text.length later
+                "0/280",
                 style: theme.textTheme.bodySmall,
               ),
             ],
@@ -238,10 +275,10 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
   }
 }
 
-// ... (Keep existing _HomeHeader, _StoriesSection, etc.)
+// ... (Keep existing _HomeHeader, _StoriesSection, _TopicsSection, _PostStat, _initial)
+
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({required this.greeting, required this.subtitle});
-
   final String greeting;
   final String subtitle;
 
@@ -287,14 +324,8 @@ class _HomeHeader extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.search_rounded),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.qr_code_scanner_rounded),
-          ),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded)),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.qr_code_scanner_rounded)),
         ],
       ),
     );
@@ -303,7 +334,6 @@ class _HomeHeader extends StatelessWidget {
 
 class _StoriesSection extends StatelessWidget {
   const _StoriesSection({required this.stories});
-
   final List<Profile> stories;
 
   @override
@@ -319,12 +349,10 @@ class _StoriesSection extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (BuildContext context, int index) {
           final Profile story = stories[index];
-
           return GestureDetector(
             onTap: () {
-              // Note: You can also open the new sheet from here if you want
               if (story.isCurrentUser) {
-                // _showSophisticatedPostSheet(context, story.id); // Optional: Trigger from avatar too
+                // Could open edit profile here
               } else {
                 print("View story for ${story.name}");
               }
@@ -338,15 +366,8 @@ class _StoriesSection extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: story.isCurrentUser
-                        ? LinearGradient(
-                      colors: <Color>[
-                        theme.colorScheme.primary,
-                        theme.colorScheme.secondary,
-                      ],
-                    )
-                        : const LinearGradient(
-                      colors: <Color>[Color(0xFFFA709A), Color(0xFFFEE140)],
-                    ),
+                        ? LinearGradient(colors: <Color>[theme.colorScheme.primary, theme.colorScheme.secondary])
+                        : const LinearGradient(colors: <Color>[Color(0xFFFA709A), Color(0xFFFEE140)]),
                   ),
                   child: Container(
                     margin: const EdgeInsets.all(3),
@@ -356,29 +377,17 @@ class _StoriesSection extends StatelessWidget {
                       border: Border.all(color: Colors.white, width: 2),
                     ),
                     child: CircleAvatar(
-                      backgroundColor: story.isCurrentUser
-                          ? theme.colorScheme.primary
-                          : const Color(0xFFE0E6F5),
+                      backgroundColor: story.isCurrentUser ? theme.colorScheme.primary : const Color(0xFFE0E6F5),
                       child: story.isCurrentUser
                           ? const Icon(Icons.add_rounded, color: Colors.white)
-                          : Text(
-                        _initial(story.name),
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
+                          : Text(_initial(story.name), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: 72,
-                  child: Text(
-                    story.name,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  child: Text(story.name, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
                 ),
               ],
             ),
@@ -391,7 +400,6 @@ class _StoriesSection extends StatelessWidget {
 
 class _TopicsSection extends StatelessWidget {
   const _TopicsSection({required this.topics, required this.title, required this.seeAllLabel});
-
   final List<String> topics;
   final String title;
   final String seeAllLabel;
@@ -407,10 +415,7 @@ class _TopicsSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
+              Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               TextButton(onPressed: () {}, child: Text(seeAllLabel)),
             ],
           ),
@@ -418,15 +423,7 @@ class _TopicsSection extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: topics
-                .map(
-                  (String topic) => Chip(
-                label: Text('#$topic'),
-                backgroundColor: theme.colorScheme.surface,
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
-            )
-                .toList(),
+            children: topics.map((String topic) => Chip(label: Text('#$topic'), backgroundColor: theme.colorScheme.surface, side: BorderSide(color: theme.colorScheme.outlineVariant))).toList(),
           ),
         ],
       ),
@@ -436,7 +433,6 @@ class _TopicsSection extends StatelessWidget {
 
 class _PostCard extends StatelessWidget {
   const _PostCard({required this.post, required this.author});
-
   final Post post;
   final Profile? author;
 
@@ -469,8 +465,6 @@ class _PostCard extends StatelessWidget {
               icon: const Icon(Icons.more_horiz_rounded),
             ),
           ),
-
-          // --- NEW: Title Section ---
           if (post.title.isNotEmpty && post.title != "Untitled")
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -482,7 +476,6 @@ class _PostCard extends StatelessWidget {
                 ),
               ),
             ),
-
           if (post.text.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
@@ -491,29 +484,56 @@ class _PostCard extends StatelessWidget {
                 style: theme.textTheme.bodyLarge,
               ),
             ),
-
-          // ... (Rest of the widget: images, tags, stats button row) ...
           if (post.imageUrl != null)
-          // ... [existing image code] ...
-
-            if (post.tags.isNotEmpty)
-            // ... [existing tags code] ...
-
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: <Widget>[
-                    _PostStat(icon: Icons.favorite_border_rounded, value: post.likes),
-                    _PostStat(icon: Icons.mode_comment_outlined, value: post.comments),
-                    _PostStat(icon: Icons.repeat_rounded, value: post.shares),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.bookmark_outline_rounded),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Image.network(
+                    post.imageUrl!,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      final double? expectedBytes = loadingProgress.expectedTotalBytes?.toDouble();
+                      final double loadedBytes = loadingProgress.cumulativeBytesLoaded.toDouble();
+                      return Container(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        alignment: Alignment.center,
+                        child: CircularProgressIndicator(value: expectedBytes != null ? loadedBytes! / expectedBytes : null),
+                      );
+                    },
+                    errorBuilder: (_, __, ___) => Container(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      alignment: Alignment.center,
+                      child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurfaceVariant),
                     ),
-                  ],
+                  ),
                 ),
               ),
+            ),
+          if (post.tags.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: post.tags.map((String tag) => Chip(label: Text('#$tag'), padding: const EdgeInsets.symmetric(horizontal: 4))).toList(),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: <Widget>[
+                _PostStat(icon: Icons.favorite_border_rounded, value: post.likes),
+                _PostStat(icon: Icons.mode_comment_outlined, value: post.comments),
+                _PostStat(icon: Icons.repeat_rounded, value: post.shares),
+                IconButton(onPressed: () {}, icon: const Icon(Icons.bookmark_outline_rounded)),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -522,10 +542,8 @@ class _PostCard extends StatelessWidget {
 
 class _PostStat extends StatelessWidget {
   const _PostStat({required this.icon, required this.value});
-
   final IconData icon;
   final int value;
-
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -539,8 +557,6 @@ class _PostStat extends StatelessWidget {
 
 String _initial(String value) {
   final String trimmed = value.trim();
-  if (trimmed.isEmpty) {
-    return '?';
-  }
+  if (trimmed.isEmpty) return '?';
   return String.fromCharCode(trimmed.runes.first).toUpperCase();
 }
