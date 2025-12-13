@@ -211,9 +211,6 @@ impl Database {
         )?;
 
         let iter = stmt.query_map([], |row| {
-            // distinct handling for the Optional Image
-            let image_opt: Option<std::string::String> = row.get(5)?;
-
             Ok(Post {
                 uuid: get_heapless(row, 0)?,
                 user_id: get_heapless(row, 1)?,
