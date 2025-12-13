@@ -1,4 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+// --- Main Settings Entry (Subprogram Definition) ---
+// This is the item you would use in your Navigation Rail or Bottom Nav
+final settingsNavigationItem = _NavigationItem(
+  label: 'Settings',
+  icon: Icons.settings_rounded,
+  page: const SettingsPage(),
+  fabLabel: 'Search',
+  fabIcon: Icons.search_rounded,
+  onFabTap: () {}, // Trigger search focus
+);
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -8,158 +20,187 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _pushEnabled = true;
-  bool _weeklyDigest = true;
-  bool _darkHeaders = false;
-  double _focusHours = 2;
-  String _selectedTheme = 'Aurora';
+  String _query = '';
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData base = Theme.of(context);
-    final ThemeData sectionTheme = base.copyWith(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF1F2D3D),
-        brightness: base.brightness,
-      ),
-      scaffoldBackgroundColor: const Color(0xFFF4F6FB),
-    );
+    final ThemeData theme = Theme.of(context);
 
-    return Theme(
-      data: sectionTheme,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 32, 16, 96),
-        children: <Widget>[
-          Text(
-            'Settings',
-            style: sectionTheme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Tune your notifications, focus windows, and vibe presets.',
-            style: sectionTheme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 20),
-          _SettingsCard(
-            title: 'Notifications',
-            children: <Widget>[
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                value: _pushEnabled,
-                title: const Text('Push alerts'),
-                subtitle: const Text('Trending totems, mentions, invites'),
-                onChanged: (bool value) => setState(() => _pushEnabled = value),
+    return Column(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 32, 16, 12),
+          child: TextField(
+            onChanged: (String value) => setState(() => _query = value),
+            decoration: InputDecoration(
+              hintText: 'Search settings...',
+              prefixIcon: const Icon(Icons.search_rounded),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
               ),
-              const Divider(),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                value: _weeklyDigest,
-                title: const Text('Weekly digest'),
-                subtitle: const Text('Sent Mondays 9am local time'),
-                onChanged: (bool value) => setState(() => _weeklyDigest = value),
+            ),
+          ),
+        ),
+
+        Expanded(
+          child: ListView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+            children: [
+              _buildCategoryHeader(theme, 'General'),
+              SettingsCategoryTile(
+                title: 'General Settings',
+                subtitle: 'App preferences and notifications',
+                icon: Icons.tune_rounded,
+                accentColor: Colors.blue,
+                destination: GeneralSettingsPage(),
+              ),
+              _buildCategoryHeader(theme, 'Privacy'),
+              SettingsCategoryTile(
+                title: 'Privacy & Security',
+                subtitle: 'Account protection and data',
+                icon: Icons.shield_outlined,
+                accentColor: Colors.green,
+                destination: PrivacySettingsPage(),
+              ),
+              _buildCategoryHeader(theme, 'Debug'),
+              SettingsCategoryTile(
+                title: 'Developer Options',
+                subtitle: 'Technical logs and debug tools',
+                icon: Icons.bug_report_outlined,
+                accentColor: Colors.orange,
+                destination: DebugSettingsPage(),
               ),
             ],
           ),
-          _SettingsCard(
-            title: 'Focus windows',
-            children: <Widget>[
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Focus hours'),
-                subtitle: Text('${_focusHours.toStringAsFixed(1)} hrs protected each day'),
-              ),
-              Slider(
-                min: 1,
-                max: 4,
-                divisions: 6,
-                value: _focusHours,
-                label: '${_focusHours.toStringAsFixed(1)} hrs',
-                onChanged: (double value) => setState(() => _focusHours = value),
-              ),
-              const SizedBox(height: 8),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                value: _darkHeaders,
-                title: const Text('Dim noisy headers'),
-                subtitle: const Text('Mute banner colors during focus spans'),
-                onChanged: (bool value) => setState(() => _darkHeaders = value),
-              ),
-            ],
-          ),
-          _SettingsCard(
-            title: 'Theme preset',
-            children: <Widget>[
-              DropdownButtonFormField<String>(
-                value: _selectedTheme,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-                items: const <DropdownMenuItem<String>>[
-                  DropdownMenuItem(value: 'Aurora', child: Text('Aurora (teal + mint)')),
-                  DropdownMenuItem(value: 'Sunset', child: Text('Sunset (peach + coral)')),
-                  DropdownMenuItem(value: 'Noir', child: Text('Noir (charcoal + lilac)')),
-                ],
-                onChanged: (String? value) => setState(() => _selectedTheme = value ?? _selectedTheme),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.tonalIcon(
-                onPressed: () {},
-                icon: const Icon(Icons.palette_rounded),
-                label: const Text('Preview theme'),
-              ),
-            ],
-          ),
-          _SettingsCard(
-            title: 'Account',
-            children: <Widget>[
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Connected email'),
-                subtitle: const Text('you@loom.space'),
-                trailing: TextButton(onPressed: () {}, child: const Text('Change')),
-              ),
-              const Divider(),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Billing plan'),
-                subtitle: const Text('Creator Crew — annual'),
-                trailing: OutlinedButton(onPressed: () {}, child: const Text('Manage')), 
-              ),
-            ],
-          ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryHeader(ThemeData theme, String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 16, 0, 8),
+      child: Text(
+        title.toUpperCase(),
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
       ),
     );
   }
 }
 
-class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({required this.title, required this.children});
+// --- Sub-Pages (The Subprograms) ---
 
-  final String title;
-  final List<Widget> children;
+class GeneralSettingsPage extends StatelessWidget {
+  const GeneralSettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(title: const Text('General Settings')),
+      body: const Center(child: Text('General Settings Content Placeholder')),
+    );
+  }
+}
+
+class PrivacySettingsPage extends StatelessWidget {
+  const PrivacySettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Privacy & Security')),
+      body: const Center(child: Text('Privacy Settings Content Placeholder')),
+    );
+  }
+}
+
+class DebugSettingsPage extends StatelessWidget {
+  const DebugSettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Developer Options')),
+      body: const Center(child: Text('Debug Tools Content Placeholder')),
+    );
+  }
+}
+
+// --- Updated Reusable Category Widget ---
+
+class SettingsCategoryTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color accentColor;
+  final Widget destination; // Added destination
+
+  const SettingsCategoryTile({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.accentColor,
+    required this.destination,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Card(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              ...children,
-            ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Theme.of(context).dividerColor.withAlpha(25)),
+        ),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 12,
           ),
+          leading: CircleAvatar(
+            backgroundColor: accentColor.withAlpha(30),
+            child: Icon(icon, color: accentColor),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          subtitle: Text(subtitle),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => destination),
+            );
+          },
         ),
       ),
     );
   }
+}
+
+// Helper Class Definition
+class _NavigationItem {
+  const _NavigationItem({
+    required this.label,
+    required this.icon,
+    required this.page,
+    required this.fabLabel,
+    required this.fabIcon,
+    required this.onFabTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final Widget page;
+  final String fabLabel;
+  final IconData fabIcon;
+  final VoidCallback onFabTap;
 }
