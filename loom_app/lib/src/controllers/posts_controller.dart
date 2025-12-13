@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:get/get.dart';
 import 'package:loom_app/src/models/post.dart';
+import 'package:loom_app/src/rust/api/simple.dart' as rust;
+import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 
 class PostsController extends GetxController {
   final RxList<Post> posts = <Post>[].obs;
@@ -7,11 +11,106 @@ class PostsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    load();
+    loadPosts();
   }
 
-  Future<void> load() async {
-    posts.assignAll(await fetchPosts());
+  /// Helper to get the correct path for the database on the phone
+  Future<String> _getDatabasePath() async {
+    final directory = await getApplicationDocumentsDirectory();
+    return "${directory.path}/loom_app.db";
+  }
+
+  /// Ensures the 'me' user and 'mobile_app' totem exist to prevent Foreign Key errors.
+  Future<void> _bootstrapDatabase(rust.AppDatabase db) async {
+    final now = DateTime.now().toUtc();
+
+    // 1. Ensure Default User ("me") exists
+    try {
+      // Try to find the user first
+      await db.getUserById(uuid: "me");
+    } catch (_) {
+      // If not found (error thrown), create them
+      print("Bootstrapping: Creating default user 'me'");
+      await db.createUser(
+        user: rust.User(
+          uuid: "me",
+          username: "Creator",
+          status: "Active",
+          bio: "This is the local user.",
+          lastContact: now,
+          profilePicture: null,
+        ),
+      );
+    }
+
+    // 2. Ensure Default Totem ("mobile_app") exists
+    // Since we don't have getTotemById generated, we try to create it.
+    // If it exists, the database will throw a constraint error, which we catch and ignore.
+    try {
+      await db.createTotem(
+        totem: rust.Totem(
+          uuid: "mobile_app",
+          name: "My Phone",
+          location: "Here",
+          lastContact: now,
+        ),
+      );
+    } catch (_) {
+      // Ignore "Unique constraint failed" errors
+    }
+  }
+
+  Future<void> loadPosts() async {
+    try {
+      final dbPath = await _getDatabasePath();
+      final database = await rust.AppDatabase(path: dbPath);
+
+      // FIX: Ensure dependencies exist before we try to read/write posts
+      await _bootstrapDatabase(database);
+
+      final rustPosts = await database.getAllPosts();
+
+      // Convert and update UI
+      // Reversing the list so newest posts appear at the top
+      posts.assignAll(
+        rustPosts.map((p) => p.toFlutterPost()).toList().reversed.toList(),
+      );
+    } catch (e) {
+      print("Error loading posts: $e");
+    }
+  }
+
+  Future<void> addPost(String content, String authorId) async {
+    try {
+      // 1. Construct the Post object
+      final newPost = rust.Post(
+        uuid: const Uuid().v4(),
+        userId: authorId, // Must match "me" or an existing user UUID
+        title: "New Post",
+        body: content,
+        timestamp: DateTime.now().toUtc(),
+        sourceTotem: "mobile_app", // Must match the UUID created in _bootstrapDatabase
+        image: null,
+      );
+
+      // 2. Open DB
+      final dbPath = await _getDatabasePath();
+      final database = await rust.AppDatabase(path: dbPath);
+
+      // 3. Ensure DB is ready (just in case)
+      await _bootstrapDatabase(database);
+
+      // 4. Create the post
+      await database.createPost(post: newPost);
+
+      // 5. Refresh the feed
+      await loadPosts();
+
+      Get.snackbar("Success", "Post created successfully!");
+    } catch (e) {
+      Get.snackbar("Error", "Failed to create post: $e");
+      print(e);
+    }
   }
 
   List<String> trendingTags({int limit = 8}) {
@@ -27,71 +126,40 @@ class PostsController extends GetxController {
   }
 
   List<Post> clips() => posts.where((p) => p.isClip).toList(growable: false);
+}
 
-  Future<List<Post>> fetchPosts() async {
-    return const <Post>[
-      Post(
-        id: 'p1',
-        authorId: 'ava',
-        timeAgoLabel: '12m',
-        text: 'Revamped the onboarding flow for Loom and the completion rate jumped 23%. Iteration pays off.',
-        imageUrl: 'https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=900&q=80',
-        tags: <String>['ux', 'design', 'product'],
-        likes: 312,
-        comments: 54,
-        shares: 18,
-      ),
-      Post(
-        id: 'p2',
-        authorId: 'miles',
-        timeAgoLabel: '1h',
-        text: 'Launch day! Our collab room feature is live for everyone. Drop by and let me know what you think.',
-        imageUrl: 'https://images.unsplash.com/photo-1474631245212-32dc3c8310c6?auto=format&fit=crop&w=900&q=80',
-        tags: <String>['launch', 'community'],
-        likes: 512,
-        comments: 102,
-        shares: 41,
-      ),
-      Post(
-        id: 'p3',
-        authorId: 'sasha',
-        timeAgoLabel: '3h',
-        text: 'AMA tomorrow on building healthy online spaces. Collecting questions until 9pm ET!',
-        tags: <String>['moderation', 'ama'],
-        likes: 210,
-        comments: 67,
-        shares: 9,
-      ),
-      Post(
-        id: 'c1',
-        authorId: 'ava',
-        timeAgoLabel: '7m',
-        text: 'Design Sync Highlights',
-        imageUrl: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=900&q=80',
-        isClip: true,
-        clipViewsLabel: '2.4K views',
-        clipDurationLabel: '03:12',
-      ),
-      Post(
-        id: 'c2',
-        authorId: 'miles',
-        timeAgoLabel: '1h',
-        text: 'Community Room AMA',
-        imageUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=900&q=80',
-        isClip: true,
-        clipViewsLabel: '9.1K views',
-        clipDurationLabel: '12:47',
-      ),
-      Post(
-        id: 'c3',
-        authorId: 'sasha',
-        timeAgoLabel: '3h',
-        text: 'Storyboarding Next Season',
-        imageUrl: 'https://images.unsplash.com/photo-1481277542470-605612bd2d61?auto=format&fit=crop&w=900&q=80',
-        isClip: true,
-        clipViewsLabel: '4.6K views',
-        clipDurationLabel: '08:19',
-      ),
-    ];
+// --- Extensions ---
+
+extension PostMapper on rust.Post {
+  Post toFlutterPost() {
+    return Post(
+      id: uuid,
+      authorId: userId,
+      text: body,
+      imageUrl: image,
+      timeAgoLabel: _formatTimeAgo(timestamp),
+      likes: 0,
+      comments: 0,
+      shares: 0,
+      // FIX: Extract hashtags from the body text so trending works
+      tags: _extractTags(body),
+      isClip: false,
+    );
+  }
+
+  List<String> _extractTags(String text) {
+    final RegExp regex = RegExp(r"\#(\w+)");
+    return regex.allMatches(text).map((m) => m.group(1)!).toList();
+  }
+
+  String _formatTimeAgo(DateTime dt) {
+    // Convert UTC to local time for display
+    final localDt = dt.toLocal();
+    final diff = DateTime.now().difference(localDt);
+
+    if (diff.inDays > 0) return '${diff.inDays}d ago';
+    if (diff.inHours > 0) return '${diff.inHours}h ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+    return 'Just now';
   }
 }

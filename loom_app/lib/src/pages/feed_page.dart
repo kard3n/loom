@@ -147,63 +147,113 @@ class _StoriesSection extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
+        itemCount: stories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (BuildContext context, int index) {
           final Profile story = stories[index];
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: story.isCurrentUser
-                      ? LinearGradient(
-                          colors: <Color>[
-                            theme.colorScheme.primary,
-                            theme.colorScheme.secondary,
-                          ],
-                        )
-                      : const LinearGradient(
-                          colors: <Color>[Color(0xFFFA709A), Color(0xFFFEE140)],
-                        ),
-                ),
-                child: Container(
-                  margin: const EdgeInsets.all(3),
+          
+          // WRAPPER ADDED HERE: GestureDetector
+          return GestureDetector(
+            onTap: () {
+              if (story.isCurrentUser) {
+                _showCreatePostDialog(context, story.id);
+              } else {
+                // Placeholder for viewing other users' stories
+                print("View story for ${story.name}");
+              }
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Container(
+                  width: 72,
+                  height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: CircleAvatar(
-                    backgroundColor: story.isCurrentUser
-                        ? theme.colorScheme.primary
-                        : const Color(0xFFE0E6F5),
-                    child: story.isCurrentUser
-                        ? const Icon(Icons.add_rounded, color: Colors.white)
-                        : Text(
-                            _initial(story.name),
-                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    gradient: story.isCurrentUser
+                        ? LinearGradient(
+                            colors: <Color>[
+                              theme.colorScheme.primary,
+                              theme.colorScheme.secondary,
+                            ],
+                          )
+                        : const LinearGradient(
+                            colors: <Color>[Color(0xFFFA709A), Color(0xFFFEE140)],
                           ),
                   ),
+                  child: Container(
+                    margin: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: CircleAvatar(
+                      backgroundColor: story.isCurrentUser
+                          ? theme.colorScheme.primary
+                          : const Color(0xFFE0E6F5),
+                      child: story.isCurrentUser
+                          ? const Icon(Icons.add_rounded, color: Colors.white)
+                          : Text(
+                              _initial(story.name),
+                              style: theme.textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: 72,
-                child: Text(
-                  story.name,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: 72,
+                  child: Text(
+                    story.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemCount: stories.length,
+      ),
+    );
+  }
+
+  // NEW HELPER: Shows the input dialog
+  void _showCreatePostDialog(BuildContext context, String authorId) {
+    final TextEditingController textController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Create Post"),
+        content: TextField(
+          controller: textController,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: "What's on your mind?",
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (textController.text.isNotEmpty) {
+                // Call the controller to add the post
+                Get.find<PostsController>().addPost(textController.text, authorId);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Post"),
+          ),
+        ],
       ),
     );
   }
@@ -312,15 +362,15 @@ class _PostCard extends StatelessWidget {
                         return child;
                       }
                       final double? expectedBytes = loadingProgress.expectedTotalBytes?.toDouble();
-                      final double? loadedBytes = loadingProgress.cumulativeBytesLoaded.toDouble();
+                      final double loadedBytes = loadingProgress.cumulativeBytesLoaded.toDouble();
                       return Container(
-                        color: theme.colorScheme.surfaceVariant,
+                        color: theme.colorScheme.surfaceContainerHighest,
                         alignment: Alignment.center,
                         child: CircularProgressIndicator(value: expectedBytes != null ? loadedBytes! / expectedBytes : null),
                       );
                     },
                     errorBuilder: (_, __, ___) => Container(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       alignment: Alignment.center,
                       child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurfaceVariant),
                     ),

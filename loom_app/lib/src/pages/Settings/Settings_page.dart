@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 // --- Main Settings Entry (Subprogram Definition) ---
 // This is the item you would use in your Navigation Rail or Bottom Nav

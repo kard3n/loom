@@ -63,7 +63,7 @@ impl Database {
     pub fn create_user(&self, user: &User) {
         self.connection
             .execute(
-                "INSERT INTO users (uuid, username, status, bio, profile_picture, last_contact) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                "INSERT OR IGNORE INTO users (uuid, username, status, bio, profile_picture, last_contact) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
                 (
                     &user.uuid.to_string(),
                     &user.username.to_string(),
@@ -79,7 +79,7 @@ impl Database {
     pub fn create_post(&self, post: &Post) {
         self.connection
             .execute(
-                "INSERT INTO posts (uuid, user_id, title, body, timestamp, image, source_totem) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                "INSERT OR IGNORE INTO posts (uuid, user_id, title, body, timestamp, image, source_totem) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
                 (
                     &post.uuid.to_string(),
                     &post.user_id.to_string(),
@@ -96,7 +96,7 @@ impl Database {
     pub fn create_totem(&self, totem: &Totem) {
         self.connection
             .execute(
-                "INSERT INTO totems (uuid, name, location, last_contact) VALUES (?1, ?2, ?3, ?4)",
+                "INSERT OR IGNORE INTO totems (uuid, name, location, last_contact) VALUES (?1, ?2, ?3, ?4)",
                 (
                     &totem.uuid.to_string(),
                     &totem.name.to_string(),
