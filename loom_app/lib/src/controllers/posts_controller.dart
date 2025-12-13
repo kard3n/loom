@@ -80,30 +80,20 @@ class PostsController extends GetxController {
     }
   }
 
-  Future<void> addPost(String content, String authorId) async {
+  Future<void> addPost(String title, String body, String authorId) async {
     try {
-      // 1. Construct the Post object
       final newPost = rust.Post(
         uuid: const Uuid().v4(),
-        userId: authorId, // Must match "me" or an existing user UUID
-        title: "New Post",
-        body: content,
+        userId: authorId,
+        title: title.isEmpty ? "Untitled" : title, // Use provided title
+        body: body,
         timestamp: DateTime.now().toUtc(),
-        sourceTotem: "mobile_app", // Must match the UUID created in _bootstrapDatabase
+        sourceTotem: "mobile_app",
         image: null,
       );
 
-      // 2. Open DB
       final dbPath = await _getDatabasePath();
-      final database = await rust.AppDatabase(path: dbPath);
-
-      // 3. Ensure DB is ready (just in case)
-      await _bootstrapDatabase(database);
-
-      // 4. Create the post
-      await database.createPost(post: newPost);
-
-      // 5. Refresh the feed
+      await rust.AppDatabase(path: dbPath).createPost(post: newPost);
       await loadPosts();
 
       Get.snackbar("Success", "Post created successfully!");
@@ -135,6 +125,7 @@ extension PostMapper on rust.Post {
     return Post(
       id: uuid,
       authorId: userId,
+      title: title,
       text: body,
       imageUrl: image,
       timeAgoLabel: _formatTimeAgo(timestamp),

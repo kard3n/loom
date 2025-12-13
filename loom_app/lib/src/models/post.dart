@@ -2,6 +2,7 @@ class Post {
   const Post({
     required this.id,
     required this.authorId,
+    required this.title,
     required this.text,
     required this.timeAgoLabel,
     this.imageUrl,
@@ -16,6 +17,7 @@ class Post {
 
   final String id;
   final String authorId;
+  final String title;
   final String text;
   final String timeAgoLabel;
   final String? imageUrl;

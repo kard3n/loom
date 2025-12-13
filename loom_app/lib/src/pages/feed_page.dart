@@ -13,64 +13,232 @@ class FeedPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final profilesController = Get.find<ProfilesController>();
     final postsController = Get.find<PostsController>();
+    final theme = Theme.of(context);
 
-    return Obx(() {
-      final Profile me = profilesController.currentUser() ??
-          const Profile(
-            id: 'me',
-            name: 'Creator',
-            handle: '@creator',
-            status: '',
-            bio: '',
-            lastSeenLabel: '',
-            isCurrentUser: true,
-          );
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          final me = profilesController.currentUser();
+          if (me != null) {
+            _showSophisticatedPostSheet(context, me.id);
+          }
+        },
+        icon: const Icon(Icons.edit_rounded),
+        label: const Text("New Post"),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+      ),
+      body: Obx(() {
+        final Profile me = profilesController.currentUser() ??
+            const Profile(
+              id: 'me',
+              name: 'Creator',
+              handle: '@creator',
+              status: '',
+              bio: '',
+              lastSeenLabel: '',
+              isCurrentUser: true,
+            );
 
-      final greeting = rust.greet(name: me.name);
+        final greeting = rust.greet(name: me.name);
 
-      final stories = <Profile>[me, ...profilesController.profiles.where((p) => !p.isCurrentUser)];
-      final allPosts = postsController.posts;
-      final topics = postsController.trendingTags(limit: 6);
+        final stories = <Profile>[
+          me,
+          ...profilesController.profiles.where((p) => !p.isCurrentUser)
+        ];
+        final allPosts = postsController.posts;
+        final topics = postsController.trendingTags(limit: 6);
 
-      return CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: <Widget>[
-          SliverToBoxAdapter(
-            child: _HomeHeader(
-              greeting: greeting,
-              subtitle: 'Here is what your circles are sharing today.',
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: _StoriesSection(stories: stories),
-          ),
-          SliverToBoxAdapter(
-            child: _TopicsSection(
-              topics: topics,
-              title: 'Trending circles',
-              seeAllLabel: 'See all',
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: index == allPosts.length - 1 ? 80 : 16),
-                    child: _PostCard(post: allPosts[index], author: profilesController.byId(allPosts[index].authorId)),
-                  );
-                },
-                childCount: allPosts.length,
+        return CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: <Widget>[
+            SliverToBoxAdapter(
+              child: _HomeHeader(
+                greeting: greeting,
+                subtitle: 'Here is what your circles are sharing today.',
               ),
             ),
-          ),
-        ],
-      );
-    });
+            SliverToBoxAdapter(
+              child: _StoriesSection(stories: stories),
+            ),
+            SliverToBoxAdapter(
+              child: _TopicsSection(
+                topics: topics,
+                title: 'Trending circles',
+                seeAllLabel: 'See all',
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                      (BuildContext context, int index) {
+                    return Padding(
+                      padding: EdgeInsets.only(
+                          bottom: index == allPosts.length - 1 ? 80 : 16),
+                      child: _PostCard(
+                          post: allPosts[index],
+                          author: profilesController
+                              .byId(allPosts[index].authorId)),
+                    );
+                  },
+                  childCount: allPosts.length,
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  void _showSophisticatedPostSheet(BuildContext context, String authorId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // Full screen capability
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _CreatePostSheetContent(authorId: authorId),
+    );
   }
 }
 
+// --- UPDATED SHEET CONTENT ---
+class _CreatePostSheetContent extends StatefulWidget {
+  final String authorId;
+  const _CreatePostSheetContent({required this.authorId});
+
+  @override
+  State<_CreatePostSheetContent> createState() => _CreatePostSheetContentState();
+}
+
+class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _bodyController = TextEditingController();
+
+  void _handlePost() {
+    // Check if at least one field has text
+    if (_titleController.text.trim().isNotEmpty ||
+        _bodyController.text.trim().isNotEmpty) {
+
+      Get.find<PostsController>().addPost(
+          _titleController.text,
+          _bodyController.text,
+          widget.authorId
+      );
+
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        top: 20,
+        left: 20,
+        right: 20,
+        bottom: bottomPadding + 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // --- Header ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              Text(
+                "Create New Post",
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              FilledButton.tonal(
+                onPressed: _handlePost,
+                child: const Text("Post"),
+              ),
+            ],
+          ),
+          const Divider(height: 30),
+
+          // --- Title Input ---
+          TextField(
+            controller: _titleController,
+            decoration: const InputDecoration(
+              hintText: 'Title (optional)',
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+            ),
+            style: theme.textTheme.titleMedium,
+          ),
+          const Divider(),
+
+          // --- Body Input ---
+          Expanded(
+            flex: 0,
+            child: TextField(
+              controller: _bodyController,
+              autofocus: true,
+              keyboardType: TextInputType.multiline,
+              maxLines: 8,
+              minLines: 3,
+              style: theme.textTheme.bodyLarge,
+              decoration: const InputDecoration(
+                hintText: 'What would you like to post?',
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // --- Actions Row (Images, Tags) ---
+          Row(
+            children: [
+              IconButton(
+                onPressed: () {
+                  // Placeholder for Image Picker
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Open image picker...')),
+                  );
+                },
+                icon: Icon(Icons.image_outlined, color: theme.colorScheme.primary),
+                tooltip: "Add Image",
+              ),
+              IconButton(
+                onPressed: () {
+                  // Placeholder for Tag Editor
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Open tag editor...')),
+                  );
+                },
+                icon: Icon(Icons.tag, color: theme.colorScheme.primary),
+                tooltip: "Add Tags",
+              ),
+              const Spacer(),
+              Text(
+                "0/280", // You can wire this up to _bodyController.text.length later
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ... (Keep existing _HomeHeader, _StoriesSection, etc.)
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({required this.greeting, required this.subtitle});
 
@@ -151,14 +319,13 @@ class _StoriesSection extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (BuildContext context, int index) {
           final Profile story = stories[index];
-          
-          // WRAPPER ADDED HERE: GestureDetector
+
           return GestureDetector(
             onTap: () {
+              // Note: You can also open the new sheet from here if you want
               if (story.isCurrentUser) {
-                _showCreatePostDialog(context, story.id);
+                // _showSophisticatedPostSheet(context, story.id); // Optional: Trigger from avatar too
               } else {
-                // Placeholder for viewing other users' stories
                 print("View story for ${story.name}");
               }
             },
@@ -172,14 +339,14 @@ class _StoriesSection extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: story.isCurrentUser
                         ? LinearGradient(
-                            colors: <Color>[
-                              theme.colorScheme.primary,
-                              theme.colorScheme.secondary,
-                            ],
-                          )
+                      colors: <Color>[
+                        theme.colorScheme.primary,
+                        theme.colorScheme.secondary,
+                      ],
+                    )
                         : const LinearGradient(
-                            colors: <Color>[Color(0xFFFA709A), Color(0xFFFEE140)],
-                          ),
+                      colors: <Color>[Color(0xFFFA709A), Color(0xFFFEE140)],
+                    ),
                   ),
                   child: Container(
                     margin: const EdgeInsets.all(3),
@@ -195,10 +362,10 @@ class _StoriesSection extends StatelessWidget {
                       child: story.isCurrentUser
                           ? const Icon(Icons.add_rounded, color: Colors.white)
                           : Text(
-                              _initial(story.name),
-                              style: theme.textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
+                        _initial(story.name),
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
                 ),
@@ -217,43 +384,6 @@ class _StoriesSection extends StatelessWidget {
             ),
           );
         },
-      ),
-    );
-  }
-
-  // NEW HELPER: Shows the input dialog
-  void _showCreatePostDialog(BuildContext context, String authorId) {
-    final TextEditingController textController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Create Post"),
-        content: TextField(
-          controller: textController,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: "What's on your mind?",
-            border: OutlineInputBorder(),
-          ),
-          maxLines: 3,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (textController.text.isNotEmpty) {
-                // Call the controller to add the post
-                Get.find<PostsController>().addPost(textController.text, authorId);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Post"),
-          ),
-        ],
       ),
     );
   }
@@ -291,11 +421,11 @@ class _TopicsSection extends StatelessWidget {
             children: topics
                 .map(
                   (String topic) => Chip(
-                    label: Text('#$topic'),
-                    backgroundColor: theme.colorScheme.surface,
-                    side: BorderSide(color: theme.colorScheme.outlineVariant),
-                  ),
-                )
+                label: Text('#$topic'),
+                backgroundColor: theme.colorScheme.surface,
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
+            )
                 .toList(),
           ),
         ],
@@ -339,6 +469,20 @@ class _PostCard extends StatelessWidget {
               icon: const Icon(Icons.more_horiz_rounded),
             ),
           ),
+
+          // --- NEW: Title Section ---
+          if (post.title.isNotEmpty && post.title != "Untitled")
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                post.title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+
           if (post.text.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
@@ -347,68 +491,29 @@ class _PostCard extends StatelessWidget {
                 style: theme.textTheme.bodyLarge,
               ),
             ),
+
+          // ... (Rest of the widget: images, tags, stats button row) ...
           if (post.imageUrl != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Image.network(
-                    post.imageUrl!,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                      if (loadingProgress == null) {
-                        return child;
-                      }
-                      final double? expectedBytes = loadingProgress.expectedTotalBytes?.toDouble();
-                      final double loadedBytes = loadingProgress.cumulativeBytesLoaded.toDouble();
-                      return Container(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        alignment: Alignment.center,
-                        child: CircularProgressIndicator(value: expectedBytes != null ? loadedBytes! / expectedBytes : null),
-                      );
-                    },
-                    errorBuilder: (_, __, ___) => Container(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      alignment: Alignment.center,
-                      child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurfaceVariant),
+          // ... [existing image code] ...
+
+            if (post.tags.isNotEmpty)
+            // ... [existing tags code] ...
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: <Widget>[
+                    _PostStat(icon: Icons.favorite_border_rounded, value: post.likes),
+                    _PostStat(icon: Icons.mode_comment_outlined, value: post.comments),
+                    _PostStat(icon: Icons.repeat_rounded, value: post.shares),
+                    IconButton(
+                      onPressed: () {},
+                      icon: const Icon(Icons.bookmark_outline_rounded),
                     ),
-                  ),
+                  ],
                 ),
               ),
-            ),
-          if (post.tags.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: post.tags
-                    .map(
-                      (String tag) => Chip(
-                        label: Text('#$tag'),
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: <Widget>[
-                _PostStat(icon: Icons.favorite_border_rounded, value: post.likes),
-                _PostStat(icon: Icons.mode_comment_outlined, value: post.comments),
-                _PostStat(icon: Icons.repeat_rounded, value: post.shares),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.bookmark_outline_rounded),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );

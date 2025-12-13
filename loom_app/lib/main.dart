@@ -30,12 +30,13 @@ class MyApp extends GetView<AppValuesController> {
   @override
   Widget build(BuildContext context) {
     return Obx(
-      () => GetMaterialApp(
+          () => GetMaterialApp(
         title: controller.appTitle.value,
         debugShowCheckedModeBanner: false,
         initialBinding: AppBindings(),
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: controller.seedColor.value),
+          colorScheme:
+          ColorScheme.fromSeed(seedColor: controller.seedColor.value),
           scaffoldBackgroundColor: controller.appScaffoldBackground.value,
           useMaterial3: true,
         ),
@@ -54,122 +55,7 @@ class HomeScreen extends GetView<MainController> {
   }
 }
 
-// creates a window when Compose is clicked
-class Compose extends StatelessWidget {
-  const Compose({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // Get the current theme for consistent styling
-    final theme = Theme.of(context);
-    final values = Get.find<AppValuesController>();
-
-    return Scaffold(
-      // 1. Elegant App Bar: No shadow and a clear close button
-      appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor, // Scaffold background color
-        elevation: 0, // Removes the shadow under the AppBar
-        title: Text(
-          'Create New Post', // Translated text
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () {
-            // Logic to close the screen
-            Navigator.of(context).pop(); 
-          },
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: () {
-                // *ACTION: Logic to publish the post*
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Post published successfully!')),
-                );
-              },
-              // 2. Styled "Post" button
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              child: const Text(
-                'Post', // Translated text
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // 3. Title/Subject input field
-            const TextField(
-              decoration: InputDecoration(
-                hintText: 'Title (optional)', // Translated text
-                border: InputBorder.none, // No border
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-            const Divider(height: 30),
-            
-            // 4. Main text area
-            const TextField(
-              keyboardType: TextInputType.multiline,
-              maxLines: null, // Allows unlimited lines
-              decoration: InputDecoration(
-                hintText: 'What would you like to post?', // Translated text
-                border: InputBorder.none,
-              ),
-            ),
-
-            const SizedBox(height: 30),
-            
-            // 5. Additional actions (images, tags, etc.)
-            Row(
-              children: <Widget>[
-                IconButton(
-                  icon: const Icon(Icons.image_outlined),
-                  tooltip: 'Add Image', // Translated text
-                  onPressed: () {
-                    // *ACTION: Image picker logic*
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Open image picker...')),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.tag),
-                  tooltip: 'Add Tags', // Translated text
-                  onPressed: () {
-                    // *ACTION: Tag management logic*
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Open tag editor...')),
-                    );
-                  },
-                ),
-                const Spacer(), // Pushes the following element to the right
-                // Optional: Character counter or status indicator
-                Text(
-                  '0/280',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// NOTE: The 'Compose' class was removed because FeedPage now handles post creation internally.
 
 // creates a window when new totem is clicked
 class NewTotem extends StatelessWidget {
@@ -184,7 +70,8 @@ class NewTotem extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Create New Totem', // Translated text
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         elevation: 0,
         actions: [
@@ -193,7 +80,8 @@ class NewTotem extends StatelessWidget {
               // *ACTION: Logic to save/create the Totem*
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Totem created successfully!')),
+                const SnackBar(
+                    content: Text('Totem created successfully!')),
               );
             },
             child: const Text(
@@ -230,7 +118,8 @@ class NewTotem extends StatelessWidget {
                   onPressed: () {
                     // *ACTION: Logic to upload an image*
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Open image picker for Totem...')),
+                      const SnackBar(
+                          content: Text('Open image picker for Totem...')),
                     );
                   },
                 ),
@@ -264,7 +153,8 @@ class NewTotem extends StatelessWidget {
               keyboardType: TextInputType.multiline,
               maxLines: 5,
               decoration: InputDecoration(
-                hintText: 'Describe the meaning of your Totem...', // Translated text
+                hintText:
+                'Describe the meaning of your Totem...', // Translated text
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(10)),
                 ),
@@ -272,7 +162,7 @@ class NewTotem extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // 4. Category/Type selection (Example for a dropdown)
             Text(
               'Totem Type', // Translated text
@@ -285,14 +175,17 @@ class NewTotem extends StatelessWidget {
                 ),
               ),
               hint: const Text('Select a type'), // Translated text
-              items: <String>['Achievement', 'Memory', 'Goal'] // Translated items
+              items: <String>[
+                'Achievement',
+                'Memory',
+                'Goal'
+              ] // Translated items
                   .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  })
-                  .toList(),
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
               onChanged: (String? newValue) {
                 // *ACTION: Save value*
               },
@@ -327,7 +220,8 @@ class InviteFriends extends StatelessWidget {
             // 1. Large prompt
             Text(
               'Share the Fun!', // Translated text
-              style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.headlineMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             Text(
@@ -347,7 +241,7 @@ class InviteFriends extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Obx(
-                      () => Text(
+                          () => Text(
                         values.inviteLink.value,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: theme.colorScheme.primary,
@@ -364,9 +258,12 @@ class InviteFriends extends StatelessWidget {
                       icon: const Icon(Icons.copy_rounded),
                       onPressed: () {
                         // *ACTION: Copy logic*
-                        Clipboard.setData(ClipboardData(text: values.inviteLink.value));
+                        Clipboard.setData(
+                            ClipboardData(text: values.inviteLink.value));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Link copied!')), // Translated text
+                          const SnackBar(
+                              content:
+                              Text('Link copied!')), // Translated text
                         );
                       },
                     ),
@@ -387,22 +284,25 @@ class InviteFriends extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildShareButton(context, Icons.email_outlined, 'Email', () {
-                  // *ACTION: Share via Email logic*
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Sharing via Email...')),
-                  );
-                }),
+                _buildShareButton(context, Icons.email_outlined, 'Email',
+                        () {
+                      // *ACTION: Share via Email logic*
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Sharing via Email...')),
+                      );
+                    }),
                 _buildShareButton(context, Icons.sms_outlined, 'SMS', () {
                   // *ACTION: Share via SMS logic*
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Sharing via SMS...')),
                   );
                 }),
-                _buildShareButton(context, Icons.share_outlined, 'Other', () {
+                _buildShareButton(
+                    context, Icons.share_outlined, 'Other', () {
                   // *ACTION: Logic for native share (e.g., using share_plus package)*
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Showing native share options...')),
+                    const SnackBar(
+                        content: Text('Showing native share options...')),
                   );
                 }),
               ],
@@ -414,7 +314,8 @@ class InviteFriends extends StatelessWidget {
   }
 
   // Helper widget for the Share buttons
-  Widget _buildShareButton(BuildContext context, IconData icon, String label, VoidCallback onTap) {
+  Widget _buildShareButton(
+      BuildContext context, IconData icon, String label, VoidCallback onTap) {
     return Column(
       children: [
         InkWell(
@@ -457,13 +358,14 @@ class _HomeScreenBodyState extends State<_HomeScreenBody> {
   void initState() {
     super.initState();
     _items = <_NavigationItem>[
+      // 1. Home Tab: FAB properties removed so FeedPage can control the button
       _NavigationItem(
         label: 'Home',
         icon: Icons.home_rounded,
         page: const FeedPage(),
-        fabLabel: 'Compose',
-        fabIcon: Icons.edit_rounded,
-        onFabTap: _openComposeWindow,
+        fabLabel: null,
+        fabIcon: null,
+        onFabTap: null,
       ),
       _NavigationItem(
         label: 'Totems',
@@ -494,10 +396,6 @@ class _HomeScreenBodyState extends State<_HomeScreenBody> {
     ];
   }
 
-  void _openComposeWindow() {
-    Get.to(() => const Compose());
-  }
-
   void _openNewTotemWindow() {
     Get.to(() => const NewTotem());
   }
@@ -516,12 +414,14 @@ class _HomeScreenBodyState extends State<_HomeScreenBody> {
   Widget build(BuildContext context) {
     final _NavigationItem activeItem = _items[_selectedIndex];
     return Scaffold(
+      // Only show the FAB if the active item defines one.
+      // Since Home (index 0) has nulls, this will be null, allowing FeedPage's FAB to show.
       floatingActionButton: activeItem.fabIcon != null
           ? FloatingActionButton.extended(
-              onPressed: activeItem.onFabTap,
-              icon: Icon(activeItem.fabIcon),
-              label: Text(activeItem.fabLabel!),
-            )
+        onPressed: activeItem.onFabTap,
+        icon: Icon(activeItem.fabIcon),
+        label: Text(activeItem.fabLabel!),
+      )
           : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -530,15 +430,17 @@ class _HomeScreenBodyState extends State<_HomeScreenBody> {
         items: _items
             .map(
               (_NavigationItem item) => BottomNavigationBarItem(
-                icon: Icon(item.icon),
-                label: item.label,
-              ),
-            )
+            icon: Icon(item.icon),
+            label: item.label,
+          ),
+        )
             .toList(growable: false),
       ),
       body: IndexedStack(
         index: _selectedIndex,
-        children: _items.map((_NavigationItem item) => item.page).toList(growable: false),
+        children: _items
+            .map((_NavigationItem item) => item.page)
+            .toList(growable: false),
       ),
     );
   }
