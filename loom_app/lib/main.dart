@@ -9,10 +9,12 @@ import 'package:loom_app/src/rust/frb_generated.dart';
 import 'package:flutter/services.dart';
 
 // ------------------- MAIN -------------------
+import 'package:loom_app/src/rust/api/simple.dart';
 
 Future<void> main() async {
   // Stellen Sie sicher, dass Flutter gebunden ist, bevor RustLib initialisiert wird
   WidgetsFlutterBinding.ensureInitialized();
+  //String result = await greet(name: "Test name");
   await RustLib.init();
   runApp(const MyApp());
 }
@@ -104,7 +106,7 @@ class Compose extends StatelessWidget {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
             ),
             const Divider(height: 30),
-            
+
             // 4. Haupt-Textbereich
             const TextField(
               keyboardType: TextInputType.multiline,
@@ -115,9 +117,9 @@ class Compose extends StatelessWidget {
               ),
               style: TextStyle(fontSize: 18),
             ),
-            
+
             const SizedBox(height: 30),
-            
+
             // 5. Zusätzliche Aktionen (Bilder, Tags etc.)
             Row(
               children: <Widget>[
@@ -236,7 +238,7 @@ class NewTotem extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // 4. Kategorie/Typ-Auswahl (Beispiel für ein Dropdown)
             Text(
               'Totem-Typ',
