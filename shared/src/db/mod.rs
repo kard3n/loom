@@ -145,6 +145,21 @@ impl Database {
             },
         );
     }
+
+    pub fn get_user_by_id(&self, uuid: &str) -> rusqlite::Result<User> {
+        return self.connection.query_row(
+            "SELECT uuid, username, bio, profile_picture FROM users WHERE uuid = ?1",
+            params![uuid],
+            |row| {
+                Ok(User {
+                    uuid: get_heapless(row, 0)?,
+                    username: get_heapless(row, 1)?,
+                    bio: get_heapless(row, 2)?,
+                    profile_picture: get_heapless(row, 3)?,
+                })
+            },
+        );
+    }
 }
 
 /// Helper function to fetch text from an SQL result and convert to heapless::String
@@ -173,14 +188,14 @@ mod tests {
     fn test_write_read() {
         let mut db = Database::new();
 
-        let user = User{
+        let user = User {
             uuid: "550e8400-e29b-41d4-a716-446655440000".try_into().unwrap(),
             username: "tag".try_into().unwrap(),
             bio: "bio".try_into().unwrap(),
             profile_picture: "123e4567-e89b-12d3-a456-426697174000".try_into().unwrap(),
         };
 
-        let totem = Totem{
+        let totem = Totem {
             uuid: "990e8400-e29b-41d4-a716-446655440011".try_into().unwrap(),
             name: "Test Totem".try_into().unwrap(),
             location: "Somewhere".try_into().unwrap(),
@@ -219,6 +234,16 @@ mod tests {
             Vec::from(["123e4567-e89b-12d3-a456-426614174000"])
         );
 
-        assert_eq!(db.get_post_by_id("123e4567-e89b-12d3-a456-426614174000").unwrap(), post)
+        assert_eq!(
+            db.get_post_by_id("123e4567-e89b-12d3-a456-426614174000")
+                .unwrap(),
+            post
+        );
+
+        assert_eq!(
+            db.get_user_by_id("550e8400-e29b-41d4-a716-446655440000")
+                .unwrap(),
+            user
+        )
     }
 }

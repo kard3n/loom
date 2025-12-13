@@ -3,6 +3,8 @@ use heapless::String;
 
 pub static UUID_SIZE: usize = 36;
 
+#[derive(Debug)]
+#[derive(PartialEq)]
 pub struct User{
     pub uuid: String<UUID_SIZE>,
     pub username: String<128>,
