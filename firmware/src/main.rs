@@ -1,3 +1,5 @@
+mod ble;
+
 use esp_idf_hal::gpio::{AnyIOPin, AnyInputPin, AnyOutputPin, IOPin};
 use esp_idf_hal::prelude::*;
 use esp_idf_hal::sd::spi::SdSpiHostDriver;
@@ -63,6 +65,10 @@ fn main() -> anyhow::Result<()> {
     esp_idf_svc::log::EspLogger::initialize_default();
 
     log::info!("Hello, world!");
+
+    // Initialize BLE GATT server
+    log::info!("Initializing BLE...");
+    ble::init_ble()?;
 
     log::info!("Setting up sd card...");
 
