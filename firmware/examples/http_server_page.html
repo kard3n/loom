@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Totem WiFi</title>
+    <style>
+        body { font-family: sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #result { margin-top: 20px; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Totem WiFi Server</h1>
+    <form id="form">
+        <input type="text" name="first_name" placeholder="First Name" required>
+        <input type="number" name="age" placeholder="Age" required>
+        <input type="text" name="birthplace" placeholder="Birthplace" required>
+        <button type="submit">Submit</button>
+    </form>
+    <div id="result"></div>
+    <script>
+        document.getElementById('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+                first_name: form.first_name.value,
+                age: parseInt(form.age.value),
+                birthplace: form.birthplace.value
+            };
+            try {
+                const res = await fetch('/post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                document.getElementById('result').textContent = await res.text();
+            } catch (err) {
+                document.getElementById('result').textContent = 'Error: ' + err;
+            }
+        });
+    </script>
+</body>
+</html>
