@@ -22,7 +22,7 @@ impl Database {
             username  TEXT NOT NULL,
             status TEXT NOT NULL,
             bio  TEXT NOT NULL,
-            profile_picture TEXT NOT NULL,
+            profile_picture,
             last_contact TEXT NOT NULL
         )",
             (),
@@ -70,7 +70,7 @@ impl Database {
                     &user.username.to_string(),
                     &user.status.to_string(),
                     &user.bio.to_string(),
-                    &user.profile_picture.to_string(),
+                    &user.profile_picture.as_ref().map(|i| i.to_string()),
                     &user.last_contact
                 ),
             )
@@ -160,7 +160,8 @@ impl Database {
                     username: get_heapless(row, 1)?,
                     status: get_heapless(row, 2)?,
                     bio: get_heapless(row, 3)?,
-                    profile_picture: get_heapless(row, 4)?,
+                    profile_picture: row.get::<_, Option<String>>(4)?
+                        .map(|s| s.parse().expect("Failed to parse image string")),
                     last_contact: row.get(5)?,
                 })
             },
@@ -190,7 +191,6 @@ mod tests {
     use super::*;
     use chrono::TimeDelta;
     use std::ops::{Add, Sub};
-    use serde::de::Unexpected::Option;
 
     #[test]
     fn test_write_read() {
@@ -202,7 +202,7 @@ mod tests {
             username: "tag".try_into().unwrap(),
             status: "Online".try_into().unwrap(),
             bio: "bio".try_into().unwrap(),
-            profile_picture: "123e4567-e89b-12d3-a456-426697174000".try_into().unwrap(),
+            profile_picture: Some("123e4567-e89b-12d3-a456-426697174000".try_into().unwrap()),
             last_contact: Utc::now(),
         };
 

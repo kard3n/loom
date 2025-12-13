@@ -10,7 +10,7 @@ pub struct User{
     pub username: String<64>,
     pub status: String<128>,
     pub bio: String<1024>,
-    pub profile_picture: String<UUID_SIZE>,
+    pub profile_picture: Option<String<UUID_SIZE>>,
     pub last_contact: DateTime<Utc>,
 }
 
