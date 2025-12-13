@@ -22,7 +22,7 @@ pub struct Post{
     pub title: String<256>,
     pub body: String<2048>,
     pub timestamp: DateTime<Utc>,
-    pub image: String<UUID_SIZE>,
+    pub image: Option<String<UUID_SIZE>>,
     pub source_totem: String<UUID_SIZE>,
 }
 

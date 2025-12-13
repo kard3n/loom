@@ -10,8 +10,8 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn new() -> Database {
-        let conn = Connection::open_in_memory().unwrap();
+    pub fn new(path: String) -> Database {
+        let conn = Connection::open(path).unwrap();
 
         // Create tables
 
@@ -49,7 +49,7 @@ impl Database {
             title  TEXT NOT NULL,
             body  TEXT NOT NULL,
             timestamp TEXT NOT NULL,
-            image TEXT NOT NULL,
+            image TEXT,
             source_totem TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(uuid),
             FOREIGN KEY (source_totem) REFERENCES totems(uuid)
@@ -87,7 +87,7 @@ impl Database {
                     &post.title.to_string(),
                     &post.body.to_string(),
                     &post.timestamp,
-                    &post.image.to_string(),
+                    post.image.as_ref().map(|i| i.to_string()),
                     &post.source_totem.to_string(),
                 ),
             )
@@ -142,7 +142,8 @@ impl Database {
                     title: get_heapless(row, 2)?,
                     body: get_heapless(row, 3)?,
                     timestamp: row.get(4)?, // DateTime<Utc> works natively with feature
-                    image: get_heapless(row, 5)?,
+                    image: row.get::<_, Option<String>>(5)?
+                        .map(|s| s.parse().expect("Failed to parse image string")),
                     source_totem: get_heapless(row, 6)?,
                 })
             },
@@ -189,9 +190,12 @@ mod tests {
     use super::*;
     use chrono::TimeDelta;
     use std::ops::{Add, Sub};
+    use serde::de::Unexpected::Option;
+
     #[test]
     fn test_write_read() {
-        let db = Database::new();
+        std::fs::remove_file("test.db".to_string());
+        let db = Database::new("test.db".to_string());
 
         let user = User {
             uuid: "550e8400-e29b-41d4-a716-446655440000".try_into().unwrap(),
@@ -223,7 +227,7 @@ mod tests {
             timestamp: Utc::now(),
 
             // Assuming image/totem IDs are also UUIDs or short identifiers
-            image: "000e8400-e29b-41d4-a716-446655440022".try_into().unwrap(),
+            image: Some("000e8400-e29b-41d4-a716-446655440022".try_into().unwrap()),
             source_totem: "990e8400-e29b-41d4-a716-446655440011".try_into().unwrap(),
         };
 
