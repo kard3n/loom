@@ -128,6 +128,26 @@ impl Database {
         post_ids
     }
 
+    pub fn get_all_post_ids(&self) -> Vec<String> {
+        let mut stmt = self
+            .connection
+            .prepare("SELECT uuid FROM posts")
+            .expect("Failed to prepare query");
+
+        // 2. Map the rows
+        let post_iter = stmt
+            .query_map((), |row| row.get(0))
+            .expect("Failed to execute query");
+
+        let mut post_ids: Vec<String> = Vec::new();
+
+        for id in post_iter {
+            post_ids.push(id.unwrap());
+        }
+
+        post_ids
+    }
+
     pub fn get_post_by_id(&self, uuid: &str) -> rusqlite::Result<Post> {
         return self.connection.query_row(
             "SELECT uuid, user_id, title, body, timestamp, image, source_totem
