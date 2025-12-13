@@ -12,7 +12,6 @@ import 'package:loom_app/src/rust/frb_generated.dart';
 import 'package:flutter/services.dart';
 
 // ------------------- MAIN -------------------
-import 'package:loom_app/src/rust/api/simple.dart';
 
 Future<void> main() async {
   // Ensure that Flutter is bound before RustLib is initialized
@@ -168,7 +167,7 @@ class Compose extends StatelessWidget {
           ],
         ),
       ),
-    ));
+    );
   }
 }
 
@@ -312,7 +311,7 @@ class InviteFriends extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const inviteLink = "https://your-app.com/invite/XYZ123";
+    final values = Get.find<AppValuesController>();
 
     return Obx(() => Scaffold(
       appBar: AppBar(
@@ -365,7 +364,7 @@ class InviteFriends extends StatelessWidget {
                       icon: const Icon(Icons.copy_rounded),
                       onPressed: () {
                         // *ACTION: Copy logic*
-                        Clipboard.setData(const ClipboardData(text: inviteLink));
+                        Clipboard.setData(ClipboardData(text: values.inviteLink.value));
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Link copied!')), // Translated text
                         );
@@ -441,22 +440,18 @@ class InviteFriends extends StatelessWidget {
   }
 }
 
-class _HomeScreenBody extends StatelessWidget {
+class _HomeScreenBody extends StatefulWidget {
   const _HomeScreenBody({required this.controller});
 
   final MainController controller;
 
-  void _openComposeWindow() {
-    Get.to(() => const Compose());
-  }
+  @override
+  State<_HomeScreenBody> createState() => _HomeScreenBodyState();
+}
 
-  void _openNewTotemWindow() {
-    Get.to(() => const NewTotem());
-  }
-
-  void _openInviteFriendsWindow() {
-    Get.to(() => const InviteFriends());
-  }
+class _HomeScreenBodyState extends State<_HomeScreenBody> {
+  late final List<_NavigationItem> _items;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -468,7 +463,7 @@ class _HomeScreenBody extends StatelessWidget {
         page: const FeedPage(),
         fabLabel: 'Compose',
         fabIcon: Icons.edit_rounded,
-        onFabTap: () => _openComposeWindow(),
+        onFabTap: _openComposeWindow,
       ),
       _NavigationItem(
         label: 'Totems',
@@ -476,7 +471,7 @@ class _HomeScreenBody extends StatelessWidget {
         page: const TotemsPage(),
         fabLabel: 'New totem',
         fabIcon: Icons.auto_fix_high_rounded,
-        onFabTap: () => _openNewTotemWindow(),
+        onFabTap: _openNewTotemWindow,
       ),
       _NavigationItem(
         label: 'Friends',
@@ -484,7 +479,7 @@ class _HomeScreenBody extends StatelessWidget {
         page: const FriendsPage(),
         fabLabel: 'Invite',
         fabIcon: Icons.person_add_alt_1_rounded,
-        onFabTap: () => _openInviteFriendsWindow(),
+        onFabTap: _openInviteFriendsWindow,
       ),
       _NavigationItem(
         label: 'Saved',
@@ -499,7 +494,18 @@ class _HomeScreenBody extends StatelessWidget {
     ];
   }
 
-  // The _showAction method remains (already in English)
+  void _openComposeWindow() {
+    Get.to(() => const Compose());
+  }
+
+  void _openNewTotemWindow() {
+    Get.to(() => const NewTotem());
+  }
+
+  void _openInviteFriendsWindow() {
+    Get.to(() => const InviteFriends());
+  }
+
   void _showAction(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -528,11 +534,11 @@ class _HomeScreenBody extends StatelessWidget {
                 label: item.label,
               ),
             )
-            .toList(),
+            .toList(growable: false),
       ),
       body: IndexedStack(
         index: _selectedIndex,
-        children: _items.map((_NavigationItem item) => item.page).toList(),
+        children: _items.map((_NavigationItem item) => item.page).toList(growable: false),
       ),
     );
   }
