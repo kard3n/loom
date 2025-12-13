@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:loom_app/src/rust/api/simple.dart';
 
@@ -9,7 +10,8 @@ class FeedPage extends StatefulWidget {
 }
 
 class _FeedPageState extends State<FeedPage> {
-  late final String _greeting = greet(name: 'Creator');
+  // Assuming 'greet' function returns an English greeting based on the name
+  late final String _greeting = greet(name: 'Creator'); 
   late final List<_Story> _stories = <_Story>[
     const _Story(name: 'You', isCurrentUser: true),
     const _Story(name: 'Ava Chen'),
@@ -98,11 +100,11 @@ class _FeedPageState extends State<FeedPage> {
   }
 }
 
-// --- Neue Seiten-Templates ---
+// --- New Page Templates ---
 
-/// Generisches Scaffold für eine neue Seite
+/// Generic Scaffold for a new page
 class _GenericPage extends StatelessWidget {
-  const _GenericPage({required this.title, this.content = 'Inhalt der Seite'});
+  const _GenericPage({required this.title, this.content = 'Page content'});
 
   final String title;
   final String content;
@@ -131,56 +133,56 @@ void _navigateToPage(BuildContext context, Widget page) {
 class SearchPage extends StatelessWidget {
   const SearchPage({super.key});
   @override
-  Widget build(BuildContext context) => const _GenericPage(title: 'Suchen', content: 'Suchfeld und Ergebnisse');
+  Widget build(BuildContext context) => const _GenericPage(title: 'Search', content: 'Search field and results');
 }
 
 class QrScannerPage extends StatelessWidget {
   const QrScannerPage({super.key});
   @override
-  Widget build(BuildContext context) => const _GenericPage(title: 'QR-Code Scanner', content: 'Kameraansicht für den Scan');
+  Widget build(BuildContext context) => const _GenericPage(title: 'QR Code Scanner', content: 'Camera view for scanning');
 }
 
 class CreateStoryPage extends StatelessWidget {
   const CreateStoryPage({super.key});
   @override
-  Widget build(BuildContext context) => const _GenericPage(title: 'Story erstellen', content: 'Story-Erstellung mit Kamera/Galerie');
+  Widget build(BuildContext context) => const _GenericPage(title: 'Create Story', content: 'Story creation interface with camera/gallery');
 }
 
 class ViewStoryPage extends StatelessWidget {
   const ViewStoryPage({super.key, required this.storyName});
   final String storyName;
   @override
-  Widget build(BuildContext context) => _GenericPage(title: 'Story von $storyName', content: 'Anzeige der Story');
+  Widget build(BuildContext context) => _GenericPage(title: '$storyName\'s Story', content: 'Viewing the story');
 }
 
 class PostOptionsPage extends StatelessWidget {
   const PostOptionsPage({super.key});
   @override
-  Widget build(BuildContext context) => const _GenericPage(title: 'Post-Optionen', content: 'Melden, Teilen, Verbergen, etc.');
+  Widget build(BuildContext context) => const _GenericPage(title: 'Post Options', content: 'Report, Share, Hide, etc.');
 }
 
 class PostLikersPage extends StatelessWidget {
   const PostLikersPage({super.key});
   @override
-  Widget build(BuildContext context) => const _GenericPage(title: 'Likes', content: 'Liste der Personen, denen es gefällt');
+  Widget build(BuildContext context) => const _GenericPage(title: 'Likes', content: 'List of people who liked this post');
 }
 
 class PostCommentsPage extends StatelessWidget {
   const PostCommentsPage({super.key});
   @override
-  Widget build(BuildContext context) => const _GenericPage(title: 'Kommentare', content: 'Liste der Kommentare und Eingabefeld');
+  Widget build(BuildContext context) => const _GenericPage(title: 'Comments', content: 'List of comments and input field');
 }
 
 class PostSharePage extends StatelessWidget {
   const PostSharePage({super.key});
   @override
-  Widget build(BuildContext context) => const _GenericPage(title: 'Teilen', content: 'Optionen zum Teilen des Posts');
+  Widget build(BuildContext context) => const _GenericPage(title: 'Share', content: 'Options for sharing the post');
 }
 
 class PostBookmarkPage extends StatelessWidget {
   const PostBookmarkPage({super.key});
   @override
-  Widget build(BuildContext context) => const _GenericPage(title: 'Lesezeichen', content: 'Post zu Lesezeichen hinzugefügt');
+  Widget build(BuildContext context) => const _GenericPage(title: 'Bookmark', content: 'Post added to bookmarks');
 }
 
 // Window for trending topics when see all is pressed
@@ -207,7 +209,7 @@ class SeeAllTopicsWindow extends StatelessWidget {
     ];
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Alle Trend-Kreise'),
+        title: const Text('All Trending Circles'), // Changed text
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -235,7 +237,7 @@ void _SeeAllTopicsPage (BuildContext context) {
   _navigateToPage(context, const SeeAllTopicsWindow());
 }
 
-// --- Komponenten mit hinzugefügten Aktionen ---
+// --- Components with added actions (all text is now English) ---
 
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({required this.greeting});
@@ -278,18 +280,18 @@ class _HomeHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Hier ist, was deine Kreise heute teilen.',
+                  'Here is what your circles are sharing today.', // Changed text
                   style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
           ),
           IconButton(
-            onPressed: () => _navigateToPage(context, const SearchPage()), // *ACTION: Search Page*
+            onPressed: () => _navigateToPage(context, const SearchPage()), 
             icon: const Icon(Icons.search_rounded),
           ),
           IconButton(
-            onPressed: () => _navigateToPage(context, const QrScannerPage()), // *ACTION: QR Scanner Page*
+            onPressed: () => _navigateToPage(context, const QrScannerPage()), 
             icon: const Icon(Icons.qr_code_scanner_rounded),
           ),
         ],
@@ -317,13 +319,13 @@ class _StoriesSection extends StatelessWidget {
 
           void onStoryTap() {
             if (story.isCurrentUser) {
-              _navigateToPage(context, const CreateStoryPage()); // *ACTION: Create Story*
+              _navigateToPage(context, const CreateStoryPage()); 
             } else {
-              _navigateToPage(context, ViewStoryPage(storyName: story.name)); // *ACTION: View Story*
+              _navigateToPage(context, ViewStoryPage(storyName: story.name)); 
             }
           }
 
-          return InkWell( // Fügen Sie InkWell hinzu, um den ganzen Bereich antippbar zu machen
+          return InkWell( 
             onTap: onStoryTap,
             borderRadius: BorderRadius.circular(50),
             child: Column(
@@ -404,10 +406,10 @@ class _TopicsSection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Text(
-                'Trend-Kreise',
+                'Trending Circles', // Changed text
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
-              TextButton(onPressed: () => _SeeAllTopicsPage(context), child: const Text('Alle anzeigen')), // *ACTION: See All Topics Page*
+              TextButton(onPressed: () => _SeeAllTopicsPage(context), child: const Text('See all')), // Changed text
             ],
           ),
           const SizedBox(height: 8),
@@ -460,7 +462,7 @@ class _PostCard extends StatelessWidget {
             ),
             subtitle: Text('${post.authorHandle} • ${post.timeAgo}'),
             trailing: IconButton(
-              onPressed: () => _navigateToPage(context, const PostOptionsPage()), // *ACTION: Post Options Page*
+              onPressed: () => _navigateToPage(context, const PostOptionsPage()), 
               icon: const Icon(Icons.more_horiz_rounded),
             ),
           ),
@@ -527,20 +529,20 @@ class _PostCard extends StatelessWidget {
                 _PostStat(
                   icon: Icons.favorite_border_rounded, 
                   value: post.likes, 
-                  onPressed: () => _navigateToPage(context, const PostLikersPage()), // *ACTION: Likes Page*
+                  onPressed: () => _navigateToPage(context, const PostLikersPage()), 
                 ),
                 _PostStat(
                   icon: Icons.mode_comment_outlined, 
                   value: post.comments, 
-                  onPressed: () => _navigateToPage(context, const PostCommentsPage()), // *ACTION: Comments Page*
+                  onPressed: () => _navigateToPage(context, const PostCommentsPage()), 
                 ),
                 _PostStat(
                   icon: Icons.repeat_rounded, 
                   value: post.shares, 
-                  onPressed: () => _navigateToPage(context, const PostSharePage()), // *ACTION: Share Page*
+                  onPressed: () => _navigateToPage(context, const PostSharePage()), 
                 ),
                 IconButton(
-                  onPressed: () => _navigateToPage(context, const PostBookmarkPage()), // *ACTION: Bookmark Page*
+                  onPressed: () => _navigateToPage(context, const PostBookmarkPage()), 
                   icon: const Icon(Icons.bookmark_outline_rounded),
                 ),
               ],
@@ -557,13 +559,13 @@ class _PostStat extends StatelessWidget {
 
   final IconData icon;
   final int value;
-  final VoidCallback onPressed; // Hinzugefügte Action
+  final VoidCallback onPressed; 
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     return TextButton.icon(
-      onPressed: onPressed, // Aktion verwenden
+      onPressed: onPressed, 
       icon: Icon(icon, size: 20),
       label: Text(value.toString(), style: theme.textTheme.labelLarge),
     );
