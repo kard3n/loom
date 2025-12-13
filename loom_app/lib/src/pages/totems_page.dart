@@ -1,219 +1,132 @@
 import 'package:flutter/material.dart';
 
-class TotemsPage extends StatelessWidget {
+class TotemsPage extends StatefulWidget {
   const TotemsPage({super.key});
 
-  static const List<_Totem> _totems = <_Totem>[
-    _Totem(
-      name: 'Aurora Grove',
-      mantra: 'Slow craft over noise.',
-      keepers: <String>['Ava Chen', 'Miles Carter'],
-      rituals: <String>['Sunrise sketching', 'Asynchronous critiques'],
-      membersOnline: 18,
-      membersTotal: 42,
-      accent: Color(0xFF0FBF9F),
-    ),
-    _Totem(
-      name: 'Signal Bloom',
-      mantra: 'Ship generous ideas.',
-      keepers: <String>['Sasha Park'],
-      rituals: <String>['Weekly zine', 'Rapid-fire AMA'],
-      membersOnline: 52,
-      membersTotal: 108,
-      accent: Color(0xFF65D6CE),
-    ),
-    _Totem(
-      name: 'North Node',
-      mantra: 'Measure what matters.',
-      keepers: <String>['Diego Luna', 'Lina Patel'],
-      rituals: <String>['Pulse review', 'Retro mural'],
-      membersOnline: 9,
-      membersTotal: 27,
-      accent: Color(0xFF2E9684),
-    ),
-    _Totem(
-      name: 'Founders Fire',
-      mantra: 'Set intent, then leap.',
-      keepers: <String>['Kai Root'],
-      rituals: <String>['Capital circle', 'Hiring huddles'],
-      membersOnline: 6,
-      membersTotal: 15,
-      accent: Color(0xFF46C6A8),
-    ),
-  ];
+  @override
+  State<TotemsPage> createState() => _TotemsPageState();
+}
 
+class _TotemsPageState extends State<TotemsPage> {
+  List<_Totem> _totems = <_Totem>[
+    const _Totem(name: "xy", description: "desc"),
+    const _Totem(name: "ab", description: "hello"),
+  ];
+  final String _totemGreeting = "These are the available Totems:";
+  
   @override
   Widget build(BuildContext context) {
-    final ThemeData base = Theme.of(context);
-    final ThemeData sectionTheme = base.copyWith(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF0FBF9F),
-        brightness: base.brightness,
-      ),
-      scaffoldBackgroundColor: const Color(0xFFF1FBF7),
-      cardTheme: base.cardTheme.copyWith(color: Colors.white),
-    );
-
-    return Theme(
-      data: sectionTheme,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: <Color>[Color(0xFFE6FFF5), Color(0xFFF9FFFC)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: <Widget>[
+        SliverToBoxAdapter(
+          child: _TotemHeader(greeting: _totemGreeting, nof_totems: _totems.length),
         ),
-        child: ListView.builder(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 32, 16, 96),
-          itemCount: _totems.length + 1,
-          itemBuilder: (BuildContext context, int index) {
-            if (index == 0) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Totems',
-                      style: sectionTheme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Anchor your crews around living rituals and signals.',
-                      style: sectionTheme.textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              );
-            }
-            final _Totem totem = _totems[index - 1];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-                elevation: 0,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: <Color>[totem.accent, totem.accent.withOpacity(0.6)],
-                              ),
-                            ),
-                            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Text(
-                                  totem.name,
-                                  style: sectionTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(totem.mantra, style: sectionTheme.textTheme.bodySmall),
-                              ],
-                            ),
-                          ),
-                          FilledButton.tonal(
-                            onPressed: () {},
-                            child: const Text('Enter space'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: totem.rituals
-                            .map((String ritual) => Chip(
-                                  label: Text(ritual),
-                                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                                ))
-                            .toList(),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: <Widget>[
-                          _TotemMeta(
-                            label: 'Keepers',
-                            value: totem.keepers.join(', '),
-                          ),
-                          _TotemMeta(
-                            label: 'Pulse',
-                            value: '${totem.membersOnline} online / ${totem.membersTotal}',
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return Padding(
+                  padding: EdgeInsets.only(bottom: index == _totems.length - 1 ? 80 : 16),
+                  child: _TotemCard(totem: _totems[index]),
+                );
+              },
+              childCount: _totems.length,
+            ),
+          )
         ),
-      ),
+      ]
     );
   }
 }
 
-class _TotemMeta extends StatelessWidget {
-  const _TotemMeta({required this.label, required this.value});
+// TODO expand Totem class
+class _Totem {
+  const _Totem({ required this.name, required this.description});
 
-  final String label;
-  final String value;
+  final String name;
+  final String description;
+}
+class _TotemHeader extends StatelessWidget{
+  const _TotemHeader({required this.greeting, required this.nof_totems});
+  final String greeting;
+  final int nof_totems;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+      child: Row(
         children: <Widget>[
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          Container(
+            width: 48,
+            height:48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: <Color>[
+                  theme.colorScheme.primary,
+                  theme.colorScheme.primaryContainer,
+                ],
+              ),
+            ),
+            child: const Center(
+              child: Icon(Icons.signal_wifi_statusbar_4_bar, color: Colors.white),
+            )
           ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-        ],
+          const SizedBox(width: 12),
+          Text("$greeting \n    (There are $nof_totems Totems available)"),
+        ]
       ),
     );
   }
 }
+class _TotemCard extends StatelessWidget{
+  const _TotemCard({required this.totem});
+  final _Totem totem;
 
-class _Totem {
-  const _Totem({
-    required this.name,
-    required this.mantra,
-    required this.keepers,
-    required this.rituals,
-    required this.membersOnline,
-    required this.membersTotal,
-    required this.accent,
-  });
 
-  final String name;
-  final String mantra;
-  final List<String> keepers;
-  final List<String> rituals;
-  final int membersOnline;
-  final int membersTotal;
-  final Color accent;
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 0,
+      color: theme.colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget> [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  "Name: " + totem.name,
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  "Description: " + totem.name,
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+            Text(
+              "Display Signal strength here",
+              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            ElevatedButton(
+              onPressed: (){
+                // TODO implement connection
+              },
+              child: Text("Connect"),
+            ),
+          ],
+        ),
+      )
+    );
+  }
 }
