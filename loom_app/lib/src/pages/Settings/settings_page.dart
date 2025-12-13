@@ -1,133 +1,129 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:loom_app/src/controllers/settings_controller.dart';
 
-class SettingsPage extends StatefulWidget {
+class SettingsPage extends GetView<SettingsController> {
   const SettingsPage({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends State<SettingsPage> {
-  bool _pushEnabled = true;
-  bool _weeklyDigest = true;
-  bool _darkHeaders = false;
-  double _focusHours = 2;
-  String _selectedTheme = 'Aurora';
-
-  @override
   Widget build(BuildContext context) {
-    final ThemeData base = Theme.of(context);
-    final ThemeData sectionTheme = base.copyWith(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF1F2D3D),
-        brightness: base.brightness,
-      ),
-      scaffoldBackgroundColor: const Color(0xFFF4F6FB),
-    );
+    return Obx(() {
+      final ThemeData base = Theme.of(context);
+      final ThemeData sectionTheme = base.copyWith(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: controller.seedColor.value,
+          brightness: base.brightness,
+        ),
+        scaffoldBackgroundColor: controller.scaffoldBackgroundColor.value,
+      );
 
-    return Theme(
-      data: sectionTheme,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 32, 16, 96),
-        children: <Widget>[
-          Text(
-            'Settings',
-            style: sectionTheme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Tune your notifications, focus windows, and vibe presets.',
-            style: sectionTheme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 20),
-          _SettingsCard(
-            title: 'Notifications',
-            children: <Widget>[
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                value: _pushEnabled,
-                title: const Text('Push alerts'),
-                subtitle: const Text('Trending totems, mentions, invites'),
-                onChanged: (bool value) => setState(() => _pushEnabled = value),
-              ),
-              const Divider(),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                value: _weeklyDigest,
-                title: const Text('Weekly digest'),
-                subtitle: const Text('Sent Mondays 9am local time'),
-                onChanged: (bool value) => setState(() => _weeklyDigest = value),
-              ),
-            ],
-          ),
-          _SettingsCard(
-            title: 'Focus windows',
-            children: <Widget>[
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Focus hours'),
-                subtitle: Text('${_focusHours.toStringAsFixed(1)} hrs protected each day'),
-              ),
-              Slider(
-                min: 1,
-                max: 4,
-                divisions: 6,
-                value: _focusHours,
-                label: '${_focusHours.toStringAsFixed(1)} hrs',
-                onChanged: (double value) => setState(() => _focusHours = value),
-              ),
-              const SizedBox(height: 8),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                value: _darkHeaders,
-                title: const Text('Dim noisy headers'),
-                subtitle: const Text('Mute banner colors during focus spans'),
-                onChanged: (bool value) => setState(() => _darkHeaders = value),
-              ),
-            ],
-          ),
-          _SettingsCard(
-            title: 'Theme preset',
-            children: <Widget>[
-              DropdownButtonFormField<String>(
-                value: _selectedTheme,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-                items: const <DropdownMenuItem<String>>[
-                  DropdownMenuItem(value: 'Aurora', child: Text('Aurora (teal + mint)')),
-                  DropdownMenuItem(value: 'Sunset', child: Text('Sunset (peach + coral)')),
-                  DropdownMenuItem(value: 'Noir', child: Text('Noir (charcoal + lilac)')),
-                ],
-                onChanged: (String? value) => setState(() => _selectedTheme = value ?? _selectedTheme),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.tonalIcon(
-                onPressed: () {},
-                icon: const Icon(Icons.palette_rounded),
-                label: const Text('Preview theme'),
-              ),
-            ],
-          ),
-          _SettingsCard(
-            title: 'Account',
-            children: <Widget>[
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Connected email'),
-                subtitle: const Text('you@loom.space'),
-                trailing: TextButton(onPressed: () {}, child: const Text('Change')),
-              ),
-              const Divider(),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Billing plan'),
-                subtitle: const Text('Creator Crew — annual'),
-                trailing: OutlinedButton(onPressed: () {}, child: const Text('Manage')), 
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+      return Theme(
+        data: sectionTheme,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 32, 16, 96),
+          children: <Widget>[
+            Text(
+              controller.title.value,
+              style: sectionTheme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              controller.subtitle.value,
+              style: sectionTheme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 20),
+            _SettingsCard(
+              title: controller.notificationsTitle.value,
+              children: <Widget>[
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: controller.pushEnabled.value,
+                  title: Text(controller.pushAlertsTitle.value),
+                  subtitle: Text(controller.pushAlertsSubtitle.value),
+                  onChanged: controller.setPushEnabled,
+                ),
+                const Divider(),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: controller.weeklyDigest.value,
+                  title: Text(controller.weeklyDigestTitle.value),
+                  subtitle: Text(controller.weeklyDigestSubtitle.value),
+                  onChanged: controller.setWeeklyDigest,
+                ),
+              ],
+            ),
+            _SettingsCard(
+              title: controller.focusWindowsTitle.value,
+              children: <Widget>[
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(controller.focusHoursTitle.value),
+                  subtitle: Text(controller.focusHoursSubtitle()),
+                ),
+                Slider(
+                  min: 1,
+                  max: 4,
+                  divisions: 6,
+                  value: controller.focusHours.value,
+                  label: '${controller.focusHours.value.toStringAsFixed(1)} hrs',
+                  onChanged: controller.setFocusHours,
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: controller.darkHeaders.value,
+                  title: Text(controller.dimHeadersTitle.value),
+                  subtitle: Text(controller.dimHeadersSubtitle.value),
+                  onChanged: controller.setDarkHeaders,
+                ),
+              ],
+            ),
+            _SettingsCard(
+              title: controller.themePresetTitle.value,
+              children: <Widget>[
+                DropdownButtonFormField<String>(
+                  value: controller.selectedTheme.value.isEmpty ? null : controller.selectedTheme.value,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: controller.themePresets
+                      .map(
+                        (ThemePreset preset) => DropdownMenuItem<String>(
+                          value: preset.value,
+                          child: Text(preset.label),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: controller.setTheme,
+                ),
+                const SizedBox(height: 12),
+                FilledButton.tonalIcon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.palette_rounded),
+                  label: Text(controller.previewThemeLabel.value),
+                ),
+              ],
+            ),
+            _SettingsCard(
+              title: controller.accountTitle.value,
+              children: <Widget>[
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(controller.connectedEmailTitle.value),
+                  subtitle: Text(controller.connectedEmailValue.value),
+                  trailing: TextButton(onPressed: () {}, child: Text(controller.changeLabel.value)),
+                ),
+                const Divider(),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(controller.billingPlanTitle.value),
+                  subtitle: Text(controller.billingPlanValue.value),
+                  trailing: OutlinedButton(onPressed: () {}, child: Text(controller.manageLabel.value)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    });
   }
 }
 

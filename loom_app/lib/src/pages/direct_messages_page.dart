@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:loom_app/src/controllers/direct_messages_controller.dart';
 
-class DirectMessagesPage extends StatelessWidget {
+class DirectMessagesPage extends GetView<DirectMessagesController> {
   const DirectMessagesPage({super.key, required this.friendName});
 
   final String friendName;
@@ -8,53 +10,55 @@ class DirectMessagesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(friendName),
-        centerTitle: false,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 56,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No messages yet',
-                          style: theme.textTheme.titleMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'This is a placeholder direct message thread.\nStart a conversation when messaging is implemented.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
+    return Obx(() {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(friendName),
+          centerTitle: false,
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 56,
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                          const SizedBox(height: 12),
+                          Text(
+                            controller.emptyTitle.value,
+                            style: theme.textTheme.titleMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            controller.emptySubtitle.value,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const _PlaceholderComposer(),
-          ],
+              const _PlaceholderComposer(),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 
@@ -64,6 +68,7 @@ class _PlaceholderComposer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final controller = Get.find<DirectMessagesController>();
     return Material(
       color: theme.colorScheme.surface,
       child: SafeArea(
@@ -72,34 +77,40 @@ class _PlaceholderComposer extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
           child: Row(
             children: [
-              IconButton(
-                onPressed: null,
-                icon: const Icon(Icons.add),
-                tooltip: 'Add (placeholder)',
+              Obx(
+                () => IconButton(
+                  onPressed: null,
+                  icon: const Icon(Icons.add),
+                  tooltip: controller.addTooltip.value,
+                ),
               ),
               Expanded(
-                child: TextField(
-                  enabled: false,
-                  decoration: InputDecoration(
-                    hintText: 'Message (placeholder)',
-                    filled: true,
-                    fillColor: theme.colorScheme.surfaceContainerHighest,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(999),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                child: Obx(
+                  () => TextField(
+                    enabled: false,
+                    decoration: InputDecoration(
+                      hintText: controller.messageHint.value,
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton.filled(
-                onPressed: null,
-                icon: const Icon(Icons.send),
-                tooltip: 'Send (placeholder)',
+              Obx(
+                () => IconButton.filled(
+                  onPressed: null,
+                  icon: const Icon(Icons.send),
+                  tooltip: controller.sendTooltip.value,
+                ),
               ),
             ],
           ),

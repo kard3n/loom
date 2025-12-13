@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:loom_app/src/controllers/totems_controller.dart';
 
 IconData _signalIconFor(int strength) {
   final int s = strength.clamp(0, 4);
@@ -16,69 +18,43 @@ IconData _signalIconFor(int strength) {
   }
 }
 
-class TotemsPage extends StatefulWidget {
+class TotemsPage extends GetView<TotemsController> {
   const TotemsPage({super.key});
 
   @override
-  State<TotemsPage> createState() => _TotemsPageState();
-}
-
-class _TotemsPageState extends State<TotemsPage> {
-  List<_Totem> _totems = <_Totem>[
-    _Totem(name: "xy", description: "desc", signal_strength: 3),
-    _Totem(name: "ab", description: "hello", signal_strength: 4),
-  ];
-  final String _totemGreeting = "These are the available Totems:";
-
-  @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: <Widget>[
-        SliverToBoxAdapter(
-          child: _TotemHeader(
-            greeting: _totemGreeting,
-            nof_totems: _totems.length,
+    return Obx(() {
+      final totems = controller.totems;
+      return CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: <Widget>[
+          SliverToBoxAdapter(
+            child: _TotemHeader(
+              greeting: controller.greeting.value,
+              nofTotems: totems.length,
+            ),
           ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate((
-              BuildContext context,
-              int index,
-            ) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  bottom: index == _totems.length - 1 ? 80 : 16,
-                ),
-                child: _TotemCard(totem: _totems[index]),
-              );
-            }, childCount: _totems.length),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
+                return Padding(
+                  padding: EdgeInsets.only(bottom: index == totems.length - 1 ? 80 : 16),
+                  child: _TotemCard(totem: totems[index]),
+                );
+              }, childCount: totems.length),
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 }
 
-// TODO expand Totem class
-class _Totem {
-  const _Totem({
-    required this.name,
-    required this.description,
-    required this.signal_strength,
-  });
-
-  final String name;
-  final String description;
-  final int signal_strength;
-}
-
 class _TotemHeader extends StatelessWidget {
-  const _TotemHeader({required this.greeting, required this.nof_totems});
+  const _TotemHeader({required this.greeting, required this.nofTotems});
   final String greeting;
-  final int nof_totems;
+  final int nofTotems;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +85,7 @@ class _TotemHeader extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              "$greeting\n(There are $nof_totems Totems available)",
+              '$greeting\n(There are $nofTotems Totems available)',
               softWrap: true,
             ),
           ),
@@ -121,7 +97,7 @@ class _TotemHeader extends StatelessWidget {
 
 class _TotemCard extends StatelessWidget {
   const _TotemCard({required this.totem});
-  final _Totem totem;
+  final TotemCard totem;
 
   @override
   Widget build(BuildContext context) {
@@ -143,7 +119,7 @@ class _TotemCard extends StatelessWidget {
                   children: <Widget>[
                     Expanded(
                       child: Text(
-                        "Name: ${totem.name}",
+                        '${Get.find<TotemsController>().nameLabel.value}: ${totem.name}',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -154,7 +130,7 @@ class _TotemCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "Description: ${totem.description}",
+                  '${Get.find<TotemsController>().descriptionLabel.value}: ${totem.description}',
                   style: theme.textTheme.bodyMedium,
                   softWrap: true,
                 ),
@@ -166,11 +142,11 @@ class _TotemCard extends StatelessWidget {
                 // TODO implement connection
               },
               icon: Icon(
-                _signalIconFor(totem.signal_strength),
+                _signalIconFor(totem.signalStrength),
                 size: 18,
                 color: theme.colorScheme.primary,
               ),
-              label: const Text("Connect"),
+              label: Text(Get.find<TotemsController>().connectLabel.value),
             );
 
             if (isNarrow) {

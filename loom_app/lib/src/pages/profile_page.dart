@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:loom_app/src/controllers/profile_controller.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends GetView<ProfileController> {
   const ProfilePage({super.key, required this.friendName});
 
   final String friendName;
@@ -10,163 +12,165 @@ class ProfilePage extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme cs = theme.colorScheme;
 
-    return Scaffold(
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: <Widget>[
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 200,
-            backgroundColor: cs.surface,
-            foregroundColor: cs.onSurface,
-            title: Text(friendName),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: <Color>[
-                      cs.primaryContainer,
-                      cs.surface,
-                    ],
+    return Obx(() {
+      return Scaffold(
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: <Widget>[
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 200,
+              backgroundColor: cs.surface,
+              foregroundColor: cs.onSurface,
+              title: Text(friendName),
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: <Color>[
+                        cs.primaryContainer,
+                        cs.surface,
+                      ],
+                    ),
+                  ),
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 72, 16, 16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: <Widget>[
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundColor: cs.primary.withOpacity(0.15),
+                            child: Text(
+                              _initial(friendName),
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: cs.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  friendName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  controller.bio.value,
+                                  style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 72, 16, 16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate(
+                  <Widget>[
+                    _StatsRow(
+                      items: <_StatItem>[
+                        _StatItem(label: controller.statTotemsLabel.value, value: '—'),
+                        _StatItem(label: controller.statPostsLabel.value, value: '—'),
+                        _StatItem(label: controller.statFriendsLabel.value, value: '—'),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
                       children: <Widget>[
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: cs.primary.withOpacity(0.15),
-                          child: Text(
-                            _initial(friendName),
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: cs.primary,
-                            ),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () {},
+                            icon: const Icon(Icons.message_rounded),
+                            label: Text(controller.messageLabel.value),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                friendName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Placeholder bio: short vibe line goes here.',
-                                style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
-                              ),
-                            ],
+                          child: OutlinedButton.icon(
+                            onPressed: () {},
+                            icon: const Icon(Icons.person_add_alt_1_rounded),
+                            label: Text(controller.followLabel.value),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: controller.aboutTitle.value,
+                      child: Text(
+                        controller.aboutBody.value,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _SectionCard(
+                      title: controller.pinnedTitle.value,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.bookmark_added_rounded),
+                            title: Text(controller.pinnedThreadTitle.value),
+                            subtitle: Text(controller.pinnedThreadSubtitle.value),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () {},
+                          ),
+                          const Divider(height: 1),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.auto_awesome_rounded),
+                            title: Text(controller.pinnedTotemTitle.value),
+                            subtitle: Text(controller.pinnedTotemSubtitle.value),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () {},
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _SectionCard(
+                      title: controller.recentPostsTitle.value,
+                      child: Column(
+                        children: <Widget>[
+                          _PostPlaceholderTile(
+                            title: controller.recentPost1Title.value,
+                            subtitle: controller.recentPost1Subtitle.value,
+                          ),
+                          const Divider(height: 1),
+                          _PostPlaceholderTile(
+                            title: controller.recentPost2Title.value,
+                            subtitle: controller.recentPost2Subtitle.value,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate(
-                <Widget>[
-                  _StatsRow(
-                    items: <_StatItem>[
-                      _StatItem(label: 'Totems', value: '—'),
-                      _StatItem(label: 'Posts', value: '—'),
-                      _StatItem(label: 'Friends', value: '—'),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.message_rounded),
-                          label: const Text('Message'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.person_add_alt_1_rounded),
-                          label: const Text('Follow'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _SectionCard(
-                    title: 'About',
-                    child: Text(
-                      'Placeholder: interests, location, and a couple of links would appear here.',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _SectionCard(
-                    title: 'Pinned',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.bookmark_added_rounded),
-                          title: const Text('Pinned thread (placeholder)'),
-                          subtitle: const Text('A saved highlight you can open later.'),
-                          trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () {},
-                        ),
-                        const Divider(height: 1),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.auto_awesome_rounded),
-                          title: const Text('Totem ritual (placeholder)'),
-                          subtitle: const Text('A ritual or prompt this user is known for.'),
-                          trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () {},
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _SectionCard(
-                    title: 'Recent posts',
-                    child: Column(
-                      children: <Widget>[
-                        _PostPlaceholderTile(
-                          title: 'A recent post title (placeholder)',
-                          subtitle: 'Short excerpt goes here — tap to open.',
-                        ),
-                        const Divider(height: 1),
-                        _PostPlaceholderTile(
-                          title: 'Another post (placeholder)',
-                          subtitle: 'This list will populate from the feed later.',
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 }
 

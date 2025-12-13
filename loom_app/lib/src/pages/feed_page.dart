@@ -1,107 +1,55 @@
 import 'package:flutter/material.dart';
-import 'package:loom_app/src/rust/api/simple.dart';
+import 'package:get/get.dart';
+import 'package:loom_app/src/controllers/feed_controller.dart';
 
-class FeedPage extends StatefulWidget {
+class FeedPage extends GetView<FeedController> {
   const FeedPage({super.key});
 
   @override
-  State<FeedPage> createState() => _FeedPageState();
-}
-
-class _FeedPageState extends State<FeedPage> {
-  late final String _greeting = greet(name: 'Creator');
-  late final List<_Story> _stories = <_Story>[
-    const _Story(name: 'You', isCurrentUser: true),
-    const _Story(name: 'Ava Chen'),
-    const _Story(name: 'Miles Carter'),
-    const _Story(name: 'Sasha Park'),
-    const _Story(name: 'Diego Luna'),
-    const _Story(name: 'Lina Patel'),
-  ];
-  late final List<_Post> _feed = <_Post>[
-    const _Post(
-      authorName: 'Ava Chen',
-      authorHandle: '@avacreates',
-      timeAgo: '12m',
-      text:
-          'Revamped the onboarding flow for Loom and the completion rate jumped 23%. Iteration pays off.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=900&q=80',
-      likes: 312,
-      comments: 54,
-      shares: 18,
-      tags: <String>['ux', 'design', 'product'],
-    ),
-    const _Post(
-      authorName: 'Miles Carter',
-      authorHandle: '@milesloops',
-      timeAgo: '1h',
-      text:
-          'Launch day! Our collab room feature is live for everyone. Drop by and let me know what you think.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1474631245212-32dc3c8310c6?auto=format&fit=crop&w=900&q=80',
-      likes: 512,
-      comments: 102,
-      shares: 41,
-      tags: <String>['launch', 'community'],
-    ),
-    const _Post(
-      authorName: 'Sasha Park',
-      authorHandle: '@sashapark',
-      timeAgo: '3h',
-      text:
-          'AMA tomorrow on building healthy online spaces. Collecting questions until 9pm ET!',
-      likes: 210,
-      comments: 67,
-      shares: 9,
-      tags: <String>['moderation', 'ama'],
-    ),
-  ];
-  late final List<String> _topics = <String>[
-    'Product Design',
-    'Playoffs',
-    'City Nights',
-    'SaaS',
-    'Wellness',
-  ];
-
-  @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: <Widget>[
-        SliverToBoxAdapter(
-          child: _HomeHeader(greeting: _greeting),
-        ),
-        SliverToBoxAdapter(
-          child: _StoriesSection(stories: _stories),
-        ),
-        SliverToBoxAdapter(
-          child: _TopicsSection(topics: _topics),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return Padding(
-                  padding: EdgeInsets.only(bottom: index == _feed.length - 1 ? 80 : 16),
-                  child: _PostCard(post: _feed[index]),
-                );
-              },
-              childCount: _feed.length,
+    return Obx(() {
+      final posts = controller.feed;
+      return CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: <Widget>[
+          SliverToBoxAdapter(
+            child: _HomeHeader(greeting: controller.greeting.value, subtitle: controller.headerSubtitle.value),
+          ),
+          SliverToBoxAdapter(
+            child: _StoriesSection(stories: controller.stories.toList()),
+          ),
+          SliverToBoxAdapter(
+            child: _TopicsSection(
+              topics: controller.topics.toList(),
+              title: controller.trendingTitle.value,
+              seeAllLabel: controller.seeAllLabel.value,
             ),
           ),
-        ),
-      ],
-    );
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (BuildContext context, int index) {
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: index == posts.length - 1 ? 80 : 16),
+                    child: _PostCard(post: posts[index]),
+                  );
+                },
+                childCount: posts.length,
+              ),
+            ),
+          ),
+        ],
+      );
+    });
   }
 }
 
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.greeting});
+  const _HomeHeader({required this.greeting, required this.subtitle});
 
   final String greeting;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +87,7 @@ class _HomeHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Here is what your circles are sharing today.',
+                  subtitle,
                   style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
@@ -162,7 +110,7 @@ class _HomeHeader extends StatelessWidget {
 class _StoriesSection extends StatelessWidget {
   const _StoriesSection({required this.stories});
 
-  final List<_Story> stories;
+  final List<StoryCard> stories;
 
   @override
   Widget build(BuildContext context) {
@@ -174,7 +122,7 @@ class _StoriesSection extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemBuilder: (BuildContext context, int index) {
-          final _Story story = stories[index];
+          final StoryCard story = stories[index];
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -236,9 +184,11 @@ class _StoriesSection extends StatelessWidget {
 }
 
 class _TopicsSection extends StatelessWidget {
-  const _TopicsSection({required this.topics});
+  const _TopicsSection({required this.topics, required this.title, required this.seeAllLabel});
 
   final List<String> topics;
+  final String title;
+  final String seeAllLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -252,10 +202,10 @@ class _TopicsSection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Text(
-                'Trending circles',
+                title,
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
-              TextButton(onPressed: () {}, child: const Text('See all')),
+              TextButton(onPressed: () {}, child: Text(seeAllLabel)),
             ],
           ),
           const SizedBox(height: 8),
@@ -281,7 +231,7 @@ class _TopicsSection extends StatelessWidget {
 class _PostCard extends StatelessWidget {
   const _PostCard({required this.post});
 
-  final _Post post;
+  final PostCard post;
 
   @override
   Widget build(BuildContext context) {
@@ -403,37 +353,6 @@ class _PostStat extends StatelessWidget {
       label: Text(value.toString(), style: theme.textTheme.labelLarge),
     );
   }
-}
-
-class _Story {
-  const _Story({required this.name, this.isCurrentUser = false});
-
-  final String name;
-  final bool isCurrentUser;
-}
-
-class _Post {
-  const _Post({
-    required this.authorName,
-    required this.authorHandle,
-    required this.timeAgo,
-    required this.text,
-    this.imageUrl,
-    required this.likes,
-    required this.comments,
-    required this.shares,
-    required this.tags,
-  });
-
-  final String authorName;
-  final String authorHandle;
-  final String timeAgo;
-  final String text;
-  final String? imageUrl;
-  final int likes;
-  final int comments;
-  final int shares;
-  final List<String> tags;
 }
 
 String _initial(String value) {
