@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:loom_app/src/pages/alerts_page.dart';
-import 'package:loom_app/src/pages/circle_page.dart';
-import 'package:loom_app/src/pages/clips_page.dart';
+import 'package:loom_app/src/pages/friends_page.dart';
 import 'package:loom_app/src/pages/feed_page.dart';
-import 'package:loom_app/src/pages/inbox_page.dart';
+import 'package:loom_app/src/pages/saved_page.dart';
+import 'package:loom_app/src/pages/Settings/settings_page.dart';
+import 'package:loom_app/src/pages/totems_page.dart';
 import 'package:loom_app/src/rust/frb_generated.dart';
 
 Future<void> main() async {
@@ -53,33 +53,30 @@ class _HomeScreenState extends State<HomeScreen> {
         onFabTap: () => _showAction('Start a new post'),
       ),
       _NavigationItem(
-        label: 'Circle',
-        icon: Icons.people_alt_rounded,
-        page: const CirclePage(),
-        fabLabel: 'Start room',
-        fabIcon: Icons.mic_none_rounded,
-        onFabTap: () => _showAction('Launch an audio room'),
+        label: 'Totems',
+        icon: Icons.auto_awesome_rounded,
+        page: const TotemsPage(),
+        fabLabel: 'New totem',
+        fabIcon: Icons.auto_fix_high_rounded,
+        onFabTap: () => _showAction('Crafting a new totem'),
       ),
       _NavigationItem(
-        label: 'Clips',
-        icon: Icons.play_circle_filled_rounded,
-        page: const ClipsPage(),
-        fabLabel: 'Go live',
-        fabIcon: Icons.videocam_rounded,
-        onFabTap: () => _showAction('Starting a live clip soon'),
+        label: 'Friends',
+        icon: Icons.groups_2_rounded,
+        page: const FriendsPage(),
+        fabLabel: 'Invite',
+        fabIcon: Icons.person_add_alt_1_rounded,
+        onFabTap: () => _showAction('Sending invites to friends'),
       ),
       _NavigationItem(
-        label: 'Alerts',
-        icon: Icons.notifications_rounded,
-        page: const AlertsPage(),
+        label: 'Saved',
+        icon: Icons.bookmark_added_rounded,
+        page: const SavedPage(),
       ),
       _NavigationItem(
-        label: 'Inbox',
-        icon: Icons.inbox_rounded,
-        page: const InboxPage(),
-        fabLabel: 'New message',
-        fabIcon: Icons.markunread_mailbox_rounded,
-        onFabTap: () => _showAction('Compose a message'),
+        label: 'Settings',
+        icon: Icons.settings_rounded,
+        page: const SettingsPage(),
       ),
     ];
   }
