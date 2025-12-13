@@ -5,8 +5,10 @@ import 'package:loom_app/src/pages/saved_page.dart';
 import 'package:loom_app/src/pages/Settings/settings_page.dart';
 import 'package:loom_app/src/pages/totems_page.dart';
 import 'package:loom_app/src/rust/frb_generated.dart';
+import 'package:loom_app/src/rust/api/simple.dart';
 
 Future<void> main() async {
+  //String result = await greet(name: "Test name");
   await RustLib.init();
   runApp(const MyApp());
 }
