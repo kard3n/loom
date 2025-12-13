@@ -41,7 +41,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
         ),
-
+        
         Expanded(
           child: ListView(
             physics: const BouncingScrollPhysics(),
@@ -53,7 +53,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: 'App preferences and notifications',
                 icon: Icons.tune_rounded,
                 accentColor: Colors.blue,
-                destination: GeneralSettingsPage(),
+                destination: Get.to(GeneralSettingsPage());
               ),
               _buildCategoryHeader(theme, 'Privacy'),
               SettingsCategoryTile(
@@ -61,7 +61,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: 'Account protection and data',
                 icon: Icons.shield_outlined,
                 accentColor: Colors.green,
-                destination: PrivacySettingsPage(),
+                destination: Get.to(PrivacySettingsPage());
               ),
               _buildCategoryHeader(theme, 'Debug'),
               SettingsCategoryTile(
@@ -69,7 +69,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: 'Technical logs and debug tools',
                 icon: Icons.bug_report_outlined,
                 accentColor: Colors.orange,
-                destination: DebugSettingsPage(),
+                destination: Get.to(DebugSettingsPage());
               ),
             ],
           ),

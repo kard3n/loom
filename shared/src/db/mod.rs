@@ -10,8 +10,8 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn new() -> Database {
-        let conn = Connection::open_in_memory().unwrap();
+    pub fn new(path: String) -> Database {
+        let conn = Connection::open(path).unwrap();
 
         // Create tables
 
@@ -22,7 +22,7 @@ impl Database {
             username  TEXT NOT NULL,
             status TEXT NOT NULL,
             bio  TEXT NOT NULL,
-            profile_picture TEXT NOT NULL,
+            profile_picture,
             last_contact TEXT NOT NULL
         )",
             (),
@@ -49,7 +49,7 @@ impl Database {
             title  TEXT NOT NULL,
             body  TEXT NOT NULL,
             timestamp TEXT NOT NULL,
-            image TEXT NOT NULL,
+            image TEXT,
             source_totem TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(uuid),
             FOREIGN KEY (source_totem) REFERENCES totems(uuid)
@@ -70,7 +70,7 @@ impl Database {
                     &user.username.to_string(),
                     &user.status.to_string(),
                     &user.bio.to_string(),
-                    &user.profile_picture.to_string(),
+                    &user.profile_picture.as_ref().map(|i| i.to_string()),
                     &user.last_contact
                 ),
             )
@@ -87,7 +87,7 @@ impl Database {
                     &post.title.to_string(),
                     &post.body.to_string(),
                     &post.timestamp,
-                    &post.image.to_string(),
+                    post.image.as_ref().map(|i| i.to_string()),
                     &post.source_totem.to_string(),
                 ),
             )
@@ -142,7 +142,8 @@ impl Database {
                     title: get_heapless(row, 2)?,
                     body: get_heapless(row, 3)?,
                     timestamp: row.get(4)?, // DateTime<Utc> works natively with feature
-                    image: get_heapless(row, 5)?,
+                    image: row.get::<_, Option<String>>(5)?
+                        .map(|s| s.parse().expect("Failed to parse image string")),
                     source_totem: get_heapless(row, 6)?,
                 })
             },
@@ -159,11 +160,100 @@ impl Database {
                     username: get_heapless(row, 1)?,
                     status: get_heapless(row, 2)?,
                     bio: get_heapless(row, 3)?,
-                    profile_picture: get_heapless(row, 4)?,
+                    profile_picture: row.get::<_, Option<String>>(4)?
+                        .map(|s| s.parse().expect("Failed to parse image string")),
                     last_contact: row.get(5)?,
                 })
             },
         );
+    }
+
+    pub fn get_all_users(&self) -> rusqlite::Result<Vec<User>> {
+        let mut stmt = self.connection.prepare(
+            "SELECT uuid, username, status, bio, profile_picture, last_contact FROM users"
+        )?;
+
+        let iter = stmt.query_map([], |row| {
+            Ok(User {
+                uuid: get_heapless(row, 0)?,
+                username: get_heapless(row, 1)?,
+                status: get_heapless(row, 2)?,
+                bio: get_heapless(row, 3)?,
+                profile_picture: row.get::<_, Option<String>>(4)?
+                    .map(|s| s.parse().expect("Failed to parse image string")),
+                last_contact: row.get(5)?,
+            })
+        })?;
+
+        iter.collect()
+    }
+
+    pub fn get_all_totems(&self) -> rusqlite::Result<Vec<Totem>> {
+        let mut stmt = self.connection.prepare(
+            "SELECT uuid, name, location, last_contact FROM totems"
+        )?;
+
+        let iter = stmt.query_map([], |row| {
+            Ok(Totem {
+                uuid: get_heapless(row, 0)?,
+                name: get_heapless(row, 1)?,
+                location: get_heapless(row, 2)?,
+                last_contact: row.get(3)?,
+            })
+        })?;
+
+        iter.collect()
+    }
+
+    pub fn get_all_posts(&self) -> rusqlite::Result<Vec<Post>> {
+        let mut stmt = self.connection.prepare(
+            "SELECT uuid, user_id, title, body, timestamp, image, source_totem FROM posts"
+        )?;
+
+        let iter = stmt.query_map([], |row| {
+            Ok(Post {
+                uuid: get_heapless(row, 0)?,
+                user_id: get_heapless(row, 1)?,
+                title: get_heapless(row, 2)?,
+                body: get_heapless(row, 3)?,
+                timestamp: row.get(4)?,
+                image: row.get::<_, Option<String>>(4)?
+                    .map(|s| s.parse().expect("Failed to parse image string")),
+                source_totem: get_heapless(row, 0)?,
+            })
+        })?;
+
+        iter.collect()
+    }
+
+    pub fn update_totem_last_contact(&self, uuid: &str, last_contact: DateTime<Utc>) -> rusqlite::Result<()> {
+        // We pass the DateTime object directly; rusqlite formats it
+        self.connection.execute(
+            "UPDATE totems SET last_contact = ?1 WHERE uuid = ?2",
+            params![last_contact, uuid],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_user(&self, user: &User) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "UPDATE users
+             SET username = ?1,
+                 status = ?2,
+                 bio = ?3,
+                 profile_picture = ?4,
+                 last_contact = ?5
+             WHERE uuid = ?6",
+            params![
+                &user.username.as_str(),
+                &user.status.as_str(),
+                &user.bio.as_str(),
+                &user.profile_picture.as_ref().map(|i| i.to_string()),
+                &user.last_contact,
+                &user.uuid.as_str()
+            ],
+        )?;
+        Ok(())
     }
 }
 
@@ -189,16 +279,18 @@ mod tests {
     use super::*;
     use chrono::TimeDelta;
     use std::ops::{Add, Sub};
+
     #[test]
     fn test_write_read() {
-        let db = Database::new();
+        std::fs::remove_file("test.db".to_string());
+        let db = Database::new("test.db".to_string());
 
         let user = User {
             uuid: "550e8400-e29b-41d4-a716-446655440000".try_into().unwrap(),
             username: "tag".try_into().unwrap(),
             status: "Online".try_into().unwrap(),
             bio: "bio".try_into().unwrap(),
-            profile_picture: "123e4567-e89b-12d3-a456-426697174000".try_into().unwrap(),
+            profile_picture: Some("123e4567-e89b-12d3-a456-426697174000".try_into().unwrap()),
             last_contact: Utc::now(),
         };
 
@@ -223,7 +315,7 @@ mod tests {
             timestamp: Utc::now(),
 
             // Assuming image/totem IDs are also UUIDs or short identifiers
-            image: "000e8400-e29b-41d4-a716-446655440022".try_into().unwrap(),
+            image: Some("000e8400-e29b-41d4-a716-446655440022".try_into().unwrap()),
             source_totem: "990e8400-e29b-41d4-a716-446655440011".try_into().unwrap(),
         };
 

@@ -1,17 +1,26 @@
 mod ble;
+mod wifi;
+mod util;
 
+use ble::TotemBleConfig;
 use esp_idf_hal::gpio::{AnyIOPin, AnyInputPin, AnyOutputPin, IOPin};
 use esp_idf_hal::prelude::*;
 use esp_idf_hal::sd::spi::SdSpiHostDriver;
 use esp_idf_hal::sd::{SdCardConfiguration, SdCardDriver};
 use esp_idf_hal::spi::{Dma, SpiDriver, SpiDriverConfig, SPI1, SPI2};
 use esp_idf_hal::sys::esp_vfs_fat_sdspi_mount;
+use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::fs::fatfs::Fatfs;
 use esp_idf_svc::io::vfs::MountedFatfs;
+use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::thread::{sleep, Thread};
+use std::time::Duration;
+use wifi::WifiConfig;
+use crate::util::{get_chip_serial, mac_to_id_and_pass};
 
 fn walk_dir_depth_limited(path: &Path, depth: usize, max_depth: usize) {
     if depth > max_depth {
@@ -66,13 +75,48 @@ fn main() -> anyhow::Result<()> {
 
     log::info!("Hello, world!");
 
-    // Initialize BLE GATT server
+    let peripherals = Peripherals::take()?;
+
+    let (wifi_modem, bt_modem) = peripherals.modem.split();
+
+
     log::info!("Initializing BLE...");
-    ble::init_ble()?;
+
+    let nvs = EspDefaultNvsPartition::take()?;
+
+    let (ssid, pass) = mac_to_id_and_pass(get_chip_serial()?);
+    let ssid = format!("Totem-{ssid}");
+
+    let ble_server = ble::init_ble(
+        TotemBleConfig {
+            device_name: ssid.clone(),
+            totem_id: ssid.clone(),
+            totem_name: ssid.clone(),
+            wifi_ssid: ssid.clone(),
+            wifi_pass: pass.clone(),
+        },
+        bt_modem,
+        nvs.clone(),
+    )?;
+
+
+    let sys_loop = EspSystemEventLoop::take()?;
+
+    // Initialize WiFi Access Point and HTTP server
+    // Note: BLE and WiFi share the modem - use one or the other
+    log::info!("Initializing WiFi AP...");
+    let (wifi, server) = wifi::init_wifi(
+        WifiConfig {
+            ssid,
+            password: pass,
+        },
+        wifi_modem,
+        sys_loop.clone(),
+        nvs.clone(),
+    )?;
+
 
     log::info!("Setting up sd card...");
-
-    let peripherals = Peripherals::take()?;
     let spi = peripherals.spi2;
 
     let sclk = peripherals.pins.gpio4;
@@ -123,5 +167,12 @@ fn main() -> anyhow::Result<()> {
         log::info!("File {file:?} read: {file_content}");
     }
 
+
+
+    loop {
+        sleep(Duration::from_millis(1000));
+        // let wifi_up = wifi.is_up()?;
+        // log::info!("is wifi up: {wifi_up}");
+    }
     Ok(())
 }

@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:loom_app/src/pages/friends_page.dart';
 import 'package:loom_app/src/pages/feed_page.dart';
+import 'package:loom_app/src/pages/Settings/Settings_page.dart';
 import 'package:loom_app/src/pages/saved_page.dart';
-import 'package:loom_app/src/pages/Settings/settings_page.dart';
 import 'package:loom_app/src/pages/totems_page.dart';
 import 'package:loom_app/src/rust/frb_generated.dart';
 import 'package:flutter/services.dart';
 
 // ------------------- MAIN -------------------
+import 'package:loom_app/src/rust/api/simple.dart';
 
 Future<void> main() async {
   // Ensure that Flutter is bound before RustLib is initialized
   WidgetsFlutterBinding.ensureInitialized();
+  //String result = await greet(name: "Test name");
   await RustLib.init();
   runApp(const MyApp());
 }
@@ -118,7 +120,7 @@ class Compose extends StatelessWidget {
               ),
               style: TextStyle(fontSize: 18),
             ),
-            
+
             const SizedBox(height: 30),
             
             // 5. Additional actions (images, tags, etc.)
@@ -210,7 +212,11 @@ class NewTotem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
-                  icon: Icon(Icons.add_a_photo_outlined, size: 40, color: theme.colorScheme.primary),
+                  icon: Icon(
+                    Icons.add_a_photo_outlined,
+                    size: 40,
+                    color: theme.colorScheme.primary,
+                  ),
                   onPressed: () {
                     // *ACTION: Logic to upload an image*
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -271,11 +277,12 @@ class NewTotem extends StatelessWidget {
               hint: const Text('Select a type'), // Translated text
               items: <String>['Achievement', 'Memory', 'Goal'] // Translated items
                   .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  })
+                  .toList(),
               onChanged: (String? newValue) {
                 // *ACTION: Save value*
               },
@@ -408,7 +415,11 @@ class InviteFriends extends StatelessWidget {
               shape: BoxShape.circle,
               color: Theme.of(context).colorScheme.primaryContainer,
             ),
-            child: Icon(icon, color: Theme.of(context).colorScheme.onPrimaryContainer, size: 30),
+            child: Icon(
+              icon,
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+              size: 30,
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -488,9 +499,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showAction(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -542,5 +551,3 @@ class _NavigationItem {
   final IconData? fabIcon;
   final VoidCallback? onFabTap;
 }
-
-

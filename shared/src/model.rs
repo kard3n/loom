@@ -10,7 +10,7 @@ pub struct User{
     pub username: String<64>,
     pub status: String<128>,
     pub bio: String<1024>,
-    pub profile_picture: String<UUID_SIZE>,
+    pub profile_picture: Option<String<UUID_SIZE>>,
     pub last_contact: DateTime<Utc>,
 }
 
@@ -22,7 +22,7 @@ pub struct Post{
     pub title: String<256>,
     pub body: String<2048>,
     pub timestamp: DateTime<Utc>,
-    pub image: String<UUID_SIZE>,
+    pub image: Option<String<UUID_SIZE>>,
     pub source_totem: String<UUID_SIZE>,
 }
 
