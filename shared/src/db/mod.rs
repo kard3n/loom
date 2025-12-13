@@ -1,7 +1,6 @@
 use crate::model::{Post, Totem, User};
 use chrono::{DateTime, Utc};
 use heapless::String as HString;
-use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::types::FromSqlError;
 use rusqlite::{Connection, Error, Row, params};
 use std::string::String;
@@ -12,7 +11,7 @@ pub struct Database {
 
 impl Database {
     pub fn new() -> Database {
-        let mut conn = Connection::open_in_memory().unwrap();
+        let conn = Connection::open_in_memory().unwrap();
 
         // Create tables
 
@@ -186,7 +185,7 @@ mod tests {
     use std::ops::{Add, Sub};
     #[test]
     fn test_write_read() {
-        let mut db = Database::new();
+        let db = Database::new();
 
         let user = User {
             uuid: "550e8400-e29b-41d4-a716-446655440000".try_into().unwrap(),
