@@ -1,41 +1,48 @@
 //! BLE GATT server implementation for ESP-IDF
 //!
-//! This module provides a complete BLE GATT server implementation that can be tested
-//! with any GATT browser app. The server publishes a service with two characteristics:
-//! - A "recv" characteristic that clients can write to
-//! - An "indicate" characteristic that clients can subscribe to and receive indications from
-//!
-//! The server demonstrates how to receive data from clients and broadcast data to all
-//! subscribed clients, including handling indication confirmations.
+//! This module provides a BLE GATT server with a Totem info service containing
+//! read-only characteristics for device identification and WiFi credentials.
 
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Mutex};
 
 use enumset::enum_set;
-
+use esp_idf_hal::modem::BluetoothModem;
 use esp_idf_svc::bt::ble::gap::{AdvConfiguration, BleGapEvent, EspBleGap};
-use esp_idf_svc::bt::ble::gatt::server::{ConnectionId, EspGatts, GattsEvent, TransferId};
+use esp_idf_svc::bt::ble::gatt::server::{ConnectionId, EspGatts, GattsEvent};
 use esp_idf_svc::bt::ble::gatt::{
-    AutoResponse, GattCharacteristic, GattDescriptor, GattId, GattInterface, GattResponse,
+    AutoResponse, GattCharacteristic, GattId, GattInterface,
     GattServiceId, GattStatus, Handle, Permission, Property,
 };
 use esp_idf_svc::bt::{BdAddr, Ble, BtDriver, BtStatus, BtUuid};
-use esp_idf_svc::hal::delay::FreeRtos;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::sys::{EspError, ESP_FAIL};
 
-use log::{info, warn};
+use log::warn;
 
-/// Initialize and start the BLE GATT server
-pub fn init_ble() -> anyhow::Result<()> {
-    let peripherals = Peripherals::take()?;
-    let nvs = EspDefaultNvsPartition::take()?;
+/// Configuration for the Totem BLE GATT server
+pub struct TotemBleConfig {
+    /// BLE advertised device name
+    pub device_name: String,
+    /// Totem ID characteristic value (max 64 chars)
+    pub totem_id: String,
+    /// Totem name characteristic value (max 64 chars)
+    pub totem_name: String,
+    /// WiFi SSID characteristic value (max 64 chars)
+    pub wifi_ssid: String,
+    /// WiFi password characteristic value (max 64 chars)
+    pub wifi_pass: String,
+}
 
-    let bt = Arc::new(BtDriver::new(peripherals.modem, Some(nvs.clone()))?);
+/// Initialize and start the BLE GATT server with the given configuration
+pub fn init_ble(config: TotemBleConfig, modem: BluetoothModem, nvs: EspDefaultNvsPartition) -> anyhow::Result<TotemServer> {
 
-    let server = ExampleServer::new(
+    let bt = Arc::new(BtDriver::new(modem, Some(nvs))?);
+
+    let server = TotemServer::new(
         Arc::new(EspBleGap::new(bt.clone())?),
         Arc::new(EspGatts::new(bt.clone())?),
+        config,
     );
 
     log::info!("BLE Gap and Gatts initialized");
@@ -56,171 +63,77 @@ pub fn init_ble() -> anyhow::Result<()> {
 
     server.gatts.register_app(APP_ID)?;
 
-    log::info!("Gatts BTP app registered");
+    log::info!("Gatts BLE app registered");
 
-    // Start indication loop in background
-    std::thread::spawn(move || {
-        let mut ind_data = 0_u16;
-
-        loop {
-            if let Err(e) = server.indicate(&ind_data.to_le_bytes()) {
-                log::warn!("Failed to send indication: {:?}", e);
-            } else {
-                log::info!("Broadcasted indication: {}", ind_data);
-            }
-
-            ind_data = ind_data.wrapping_add(1);
-
-            FreeRtos::delay_ms(10000);
-        }
-    });
-
-    Ok(())
+    Ok(server)
 }
 
 const APP_ID: u16 = 0;
 const MAX_CONNECTIONS: usize = 2;
+const MAX_CHAR_LEN: usize = 64;
 
-// Our service UUID
-pub const SERVICE_UUID: u128 = 0xad91b201734740479e173bed82d75f9d;
+/// Totem info service UUID: e5d63081-6e16-427b-8ae3-66fdffafa604
+pub const SERVICE_UUID: u128 = 0xe5d630816e16427b8ae366fdffafa604;
 
-/// Our "recv" characteristic - i.e. where clients can send data.
-pub const RECV_CHARACTERISTIC_UUID: u128 = 0xb6fccb5087be44f3ae22f85485ea42c4;
-/// Our "indicate" characteristic - i.e. where clients can receive data if they subscribe to it
-pub const IND_CHARACTERISTIC_UUID: u128 = 0x503de214868246c4828fd59144da41be;
+/// totem_id characteristic UUID: e5d63082-6e16-427b-8ae3-66fdffafa604
+pub const TOTEM_ID_UUID: u128 = 0xe5d630826e16427b8ae366fdffafa604;
+/// totem_name characteristic UUID: e5d63083-6e16-427b-8ae3-66fdffafa604
+pub const TOTEM_NAME_UUID: u128 = 0xe5d630836e16427b8ae366fdffafa604;
+/// totem_wifi_ssid characteristic UUID: e5d63084-6e16-427b-8ae3-66fdffafa604
+pub const TOTEM_WIFI_SSID_UUID: u128 = 0xe5d630846e16427b8ae366fdffafa604;
+/// totem_wifi_pass characteristic UUID: e5d63085-6e16-427b-8ae3-66fdffafa604
+pub const TOTEM_WIFI_PASS_UUID: u128 = 0xe5d630856e16427b8ae366fdffafa604;
 
-// Name the types as they are used in the example to get shorter type signatures in the various functions below.
-// note that - rather than `Arc`s, you can use regular references as well, but then you have to deal with lifetimes
-// and the signatures below will not be `'static`.
-type ExBtDriver = BtDriver<'static, Ble>;
-type ExEspBleGap = Arc<EspBleGap<'static, Ble, Arc<ExBtDriver>>>;
-type ExEspGatts = Arc<EspGatts<'static, Ble, Arc<ExBtDriver>>>;
+type TotemBtDriver = BtDriver<'static, Ble>;
+type TotemEspBleGap = Arc<EspBleGap<'static, Ble, Arc<TotemBtDriver>>>;
+type TotemEspGatts = Arc<EspGatts<'static, Ble, Arc<TotemBtDriver>>>;
 
 #[derive(Debug, Clone)]
 struct Connection {
     peer: BdAddr,
     conn_id: Handle,
-    subscribed: bool,
     mtu: Option<u16>,
 }
 
-#[derive(Default)]
 struct State {
     gatt_if: Option<GattInterface>,
     service_handle: Option<Handle>,
-    recv_handle: Option<Handle>,
-    ind_handle: Option<Handle>,
-    ind_cccd_handle: Option<Handle>,
     connections: heapless::Vec<Connection, MAX_CONNECTIONS>,
-    response: GattResponse,
-    ind_confirmed: Option<BdAddr>,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            gatt_if: None,
+            service_handle: None,
+            connections: heapless::Vec::new(),
+        }
+    }
 }
 
 #[derive(Clone)]
-pub struct ExampleServer {
-    gap: ExEspBleGap,
-    gatts: ExEspGatts,
+pub struct TotemServer {
+    gap: TotemEspBleGap,
+    gatts: TotemEspGatts,
     state: Arc<Mutex<State>>,
-    condvar: Arc<Condvar>,
+    config: Arc<TotemBleConfig>,
 }
 
-impl ExampleServer {
-    pub fn new(gap: ExEspBleGap, gatts: ExEspGatts) -> Self {
+impl TotemServer {
+    pub fn new(gap: TotemEspBleGap, gatts: TotemEspGatts, config: TotemBleConfig) -> Self {
         Self {
             gap,
             gatts,
             state: Arc::new(Mutex::new(Default::default())),
-            condvar: Arc::new(Condvar::new()),
+            config: Arc::new(config),
         }
     }
 }
 
-impl ExampleServer {
-    /// Send (indicate) data to all peers that are currently
-    /// subscribed to our indication characteristic
-    ///
-    /// Uses a Mutex + Condvar to wait until indication confirmation
-    /// is received.
-    ///
-    /// This complexity is necessary only when using indications.
-    /// Notifications do not really send confirmation and thus do not
-    /// need this synchronization.
-    fn indicate(&self, data: &[u8]) -> Result<(), EspError> {
-        for peer_index in 0..MAX_CONNECTIONS {
-            // Propagate this data to all clients which are connected
-            // and have subscribed to our indication characteristic
-
-            let mut state = self.state.lock().unwrap();
-
-            loop {
-                if state.connections.len() <= peer_index {
-                    // We've send to everybody who is connected
-                    break;
-                }
-
-                let Some(gatt_if) = state.gatt_if else {
-                    // We lost the gatt interface in the meantime
-                    break;
-                };
-
-                let Some(ind_handle) = state.ind_handle else {
-                    // We lost the indication handle in the meantime
-                    break;
-                };
-
-                if state.ind_confirmed.is_none() {
-                    let conn = &state.connections[peer_index];
-
-                    if conn.subscribed {
-                        self.gatts
-                            .indicate(gatt_if, conn.conn_id, ind_handle, data)?;
-
-                        state.ind_confirmed = Some(conn.peer);
-                        let conn = &state.connections[peer_index];
-
-                        log::info!("Indicated data to {}", conn.peer);
-                    }
-                    break;
-                } else {
-                    state = self.condvar.wait(state).unwrap();
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Sample callback where the user code can handle a newly-subscribed client
-    ///
-    /// If the user code just broadcasts the _same_ indication to all subscribed
-    /// clients, this callback might not be necessary.
-    fn on_subscribed(&self, addr: BdAddr) {
-        // Put your custom code here or leave empty
-        // `indicate()` will anyway send to all connected clients
-        warn!("Client {addr} subscribed - put your custom logic here");
-    }
-
-    /// Sample callback where the user code can handle an unsubscribed client
-    ///
-    /// If the user code just broadcasts the _same_ indication to all subscribed
-    /// clients, this callback might not be necessary.
-    fn on_unsubscribed(&self, addr: BdAddr) {
-        // Put your custom code here
-        // `indicate()` will anyway send to all connected clients
-        warn!("Client {addr} unsubscribed - put your custom logic here");
-    }
-
-    /// Sample callback where the user code can handle received data
-    /// For demo purposes, the data is just logged.
-    fn on_recv(&self, addr: BdAddr, data: &[u8], offset: u16, mtu: Option<u16>) {
-        // Put your custom code here
-        warn!("Received data from {addr}: {data:?}, offset: {offset}, mtu: {mtu:?} - put your custom logic here");
-    }
-
+impl TotemServer {
     /// The main event handler for the GAP events
     fn on_gap_event(&self, event: BleGapEvent) -> Result<(), EspError> {
-        // log::info!("Got event: {event:?}");
-        log::info!("Got event.");
+        log::info!("GAP event received");
 
         if let BleGapEvent::AdvertisingConfigured(status) = event {
             self.check_bt_status(status)?;
@@ -236,8 +149,6 @@ impl ExampleServer {
         gatt_if: GattInterface,
         event: GattsEvent,
     ) -> Result<(), EspError> {
-        // log::info!("Got event: {event:?}");
-
         match event {
             GattsEvent::ServiceRegistered { status, app_id } => {
                 self.check_gatt_status(status)?;
@@ -253,23 +164,8 @@ impl ExampleServer {
                 self.check_gatt_status(status)?;
                 self.configure_and_start_service(service_handle)?;
             }
-            GattsEvent::CharacteristicAdded {
-                status,
-                attr_handle,
-                service_handle,
-                char_uuid,
-            } => {
+            GattsEvent::CharacteristicAdded { status, .. } => {
                 self.check_gatt_status(status)?;
-                self.register_characteristic(service_handle, attr_handle, char_uuid)?;
-            }
-            GattsEvent::DescriptorAdded {
-                status,
-                attr_handle,
-                service_handle,
-                descr_uuid,
-            } => {
-                self.check_gatt_status(status)?;
-                self.register_cccd_descriptor(service_handle, attr_handle, descr_uuid)?;
             }
             GattsEvent::ServiceDeleted {
                 status,
@@ -295,55 +191,28 @@ impl ExampleServer {
             GattsEvent::PeerDisconnected { addr, .. } => {
                 self.delete_conn(addr)?;
             }
-            GattsEvent::Write {
-                conn_id,
-                trans_id,
-                addr,
-                handle,
-                offset,
-                need_rsp,
-                is_prep,
-                value,
-            } => {
-                let handled = self.recv(
-                    gatt_if, conn_id, trans_id, addr, handle, offset, need_rsp, is_prep, value,
-                )?;
-
-                if handled {
-                    self.send_write_response(
-                        gatt_if, conn_id, trans_id, handle, offset, need_rsp, is_prep, value,
-                    )?;
-                }
-            }
-            GattsEvent::Confirm { status, .. } => {
-                self.check_gatt_status(status)?;
-                self.confirm_indication()?;
-            }
             _ => (),
         }
 
         Ok(())
     }
 
-    /// Set the advertising configuration, effectively starting advertising
+    /// Set the advertising configuration
     fn set_adv_conf(&self) -> Result<(), EspError> {
         self.gap.set_adv_conf(&AdvConfiguration {
             include_name: true,
             include_txpower: true,
             flag: 2,
             service_uuid: Some(BtUuid::uuid128(SERVICE_UUID)),
-            // service_data: todo!(),
-            // manufacturer_data: todo!(),
             ..Default::default()
         })
     }
 
     /// Create the service and start advertising
-    /// Called from within the event callback once we are notified that the GATTS app is registered
     fn create_service(&self, gatt_if: GattInterface) -> Result<(), EspError> {
         self.state.lock().unwrap().gatt_if = Some(gatt_if);
 
-        self.gap.set_device_name("ESP32")?;
+        self.gap.set_device_name(&self.config.device_name)?;
         self.set_adv_conf()?;
         self.gatts.create_service(
             gatt_if,
@@ -354,28 +223,22 @@ impl ExampleServer {
                 },
                 is_primary: true,
             },
-            8,
+            16, // Enough handles for 4 characteristics
         )?;
 
         Ok(())
     }
 
     /// Delete the service
-    /// Called from within the event callback once we are notified that the GATTS app is deleted
     fn delete_service(&self, service_handle: Handle) -> Result<(), EspError> {
-        let mut state = self.state.lock().unwrap();
-
+        let state = self.state.lock().unwrap();
         if state.service_handle == Some(service_handle) {
-            state.recv_handle = None;
-            state.ind_handle = None;
-            state.ind_cccd_handle = None;
+            // Service deleted, nothing else to clean up
         }
-
         Ok(())
     }
 
     /// Unregister the service
-    /// Called from within the event callback once we are notified that the GATTS app is unregistered
     fn unregister_service(&self, service_handle: Handle) -> Result<(), EspError> {
         let mut state = self.state.lock().unwrap();
 
@@ -387,8 +250,7 @@ impl ExampleServer {
         Ok(())
     }
 
-    /// Configure and start the service
-    /// Called from within the event callback once we are notified that the service is created
+    /// Configure and start the service, adding all characteristics
     fn configure_and_start_service(&self, service_handle: Handle) -> Result<(), EspError> {
         self.state.lock().unwrap().service_handle = Some(service_handle);
 
@@ -398,97 +260,64 @@ impl ExampleServer {
         Ok(())
     }
 
-    /// Add our two characteristics to the service
-    /// Called from within the event callback once we are notified that the service is created
+    /// Add all four READ-only characteristics to the service
     fn add_characteristics(&self, service_handle: Handle) -> Result<(), EspError> {
+        // totem_id
         self.gatts.add_characteristic(
             service_handle,
             &GattCharacteristic {
-                uuid: BtUuid::uuid128(RECV_CHARACTERISTIC_UUID),
-                permissions: enum_set!(Permission::Write),
-                properties: enum_set!(Property::Write),
-                max_len: 200, // Max recv data
-                auto_rsp: AutoResponse::ByApp,
+                uuid: BtUuid::uuid128(TOTEM_ID_UUID),
+                permissions: enum_set!(Permission::Read),
+                properties: enum_set!(Property::Read),
+                max_len: MAX_CHAR_LEN,
+                auto_rsp: AutoResponse::ByGatt,
             },
-            &[],
+            self.config.totem_id.as_bytes(),
         )?;
 
+        // totem_name
         self.gatts.add_characteristic(
             service_handle,
             &GattCharacteristic {
-                uuid: BtUuid::uuid128(IND_CHARACTERISTIC_UUID),
-                permissions: enum_set!(Permission::Write | Permission::Read),
-                properties: enum_set!(Property::Indicate),
-                max_len: 200, // Mac iondicate data
-                auto_rsp: AutoResponse::ByApp,
+                uuid: BtUuid::uuid128(TOTEM_NAME_UUID),
+                permissions: enum_set!(Permission::Read),
+                properties: enum_set!(Property::Read),
+                max_len: MAX_CHAR_LEN,
+                auto_rsp: AutoResponse::ByGatt,
             },
-            &[],
+            self.config.totem_name.as_bytes(),
+        )?;
+
+        // totem_wifi_ssid
+        self.gatts.add_characteristic(
+            service_handle,
+            &GattCharacteristic {
+                uuid: BtUuid::uuid128(TOTEM_WIFI_SSID_UUID),
+                permissions: enum_set!(Permission::Read),
+                properties: enum_set!(Property::Read),
+                max_len: MAX_CHAR_LEN,
+                auto_rsp: AutoResponse::ByGatt,
+            },
+            self.config.wifi_ssid.as_bytes(),
+        )?;
+
+        // totem_wifi_pass
+        self.gatts.add_characteristic(
+            service_handle,
+            &GattCharacteristic {
+                uuid: BtUuid::uuid128(TOTEM_WIFI_PASS_UUID),
+                permissions: enum_set!(Permission::Read),
+                properties: enum_set!(Property::Read),
+                max_len: MAX_CHAR_LEN,
+                auto_rsp: AutoResponse::ByGatt,
+            },
+            self.config.wifi_pass.as_bytes(),
         )?;
 
         Ok(())
     }
 
-    /// Add the CCCD descriptor
-    /// Called from within the event callback once we are notified that a char descriptor is added,
-    /// however the method will do something only if the added char is the "indicate" characteristics of course
-    fn register_characteristic(
-        &self,
-        service_handle: Handle,
-        attr_handle: Handle,
-        char_uuid: BtUuid,
-    ) -> Result<(), EspError> {
-        let indicate_char = {
-            let mut state = self.state.lock().unwrap();
-
-            if state.service_handle != Some(service_handle) {
-                false
-            } else if char_uuid == BtUuid::uuid128(RECV_CHARACTERISTIC_UUID) {
-                state.recv_handle = Some(attr_handle);
-
-                false
-            } else if char_uuid == BtUuid::uuid128(IND_CHARACTERISTIC_UUID) {
-                state.ind_handle = Some(attr_handle);
-
-                true
-            } else {
-                false
-            }
-        };
-
-        if indicate_char {
-            self.gatts.add_descriptor(
-                service_handle,
-                &GattDescriptor {
-                    uuid: BtUuid::uuid16(0x2902), // CCCD
-                    permissions: enum_set!(Permission::Read | Permission::Write),
-                },
-            )?;
-        }
-
-        Ok(())
-    }
-
-    /// Register the CCCD descriptor
-    /// Called from within the event callback once we are notified that a descriptor is added,
-    fn register_cccd_descriptor(
-        &self,
-        service_handle: Handle,
-        attr_handle: Handle,
-        descr_uuid: BtUuid,
-    ) -> Result<(), EspError> {
-        let mut state = self.state.lock().unwrap();
-
-        if descr_uuid == BtUuid::uuid16(0x2902) // CCCD UUID
-            && state.service_handle == Some(service_handle)
-        {
-            state.ind_cccd_handle = Some(attr_handle);
-        }
-
-        Ok(())
-    }
-
-    /// Receive data from a client
-    /// Called from within the event callback once we are notified for the connection MTU
+    /// Update connection MTU
     fn register_conn_mtu(&self, conn_id: ConnectionId, mtu: u16) -> Result<(), EspError> {
         let mut state = self.state.lock().unwrap();
 
@@ -504,7 +333,6 @@ impl ExampleServer {
     }
 
     /// Create a new connection
-    /// Called from within the event callback once we are notified for a new connection
     fn create_conn(&self, conn_id: ConnectionId, addr: BdAddr) -> Result<(), EspError> {
         let added = {
             let mut state = self.state.lock().unwrap();
@@ -515,13 +343,12 @@ impl ExampleServer {
                     .push(Connection {
                         peer: addr,
                         conn_id,
-                        subscribed: false,
                         mtu: None,
                     })
                     .map_err(|_| ())
                     .unwrap();
 
-                // restart advertising so we can get a new connection
+                // Restart advertising to allow more connections
                 self.set_adv_conf()?;
 
                 true
@@ -531,6 +358,7 @@ impl ExampleServer {
         };
 
         if added {
+            log::info!("Peer connected: {addr}");
             self.gap.set_conn_params_conf(addr, 10, 20, 0, 400)?;
         }
 
@@ -538,7 +366,6 @@ impl ExampleServer {
     }
 
     /// Delete a connection
-    /// Called from within the event callback once we are notified for a disconnected peer
     fn delete_conn(&self, addr: BdAddr) -> Result<(), EspError> {
         let mut state = self.state.lock().unwrap();
 
@@ -548,140 +375,24 @@ impl ExampleServer {
             .position(|Connection { peer, .. }| *peer == addr)
         {
             state.connections.swap_remove(index);
+            log::info!("Peer disconnected: {addr}");
 
-            // restart advertising so we can get a new connection
+            // Restart advertising to allow new connections
             self.set_adv_conf()?;
         }
 
         Ok(())
     }
 
-    /// A helper method to process a client sending us data to the "recv" characteristic
-    #[allow(clippy::too_many_arguments)]
-    fn recv(
-        &self,
-        _gatt_if: GattInterface,
-        conn_id: ConnectionId,
-        _trans_id: TransferId,
-        addr: BdAddr,
-        handle: Handle,
-        offset: u16,
-        _need_rsp: bool,
-        _is_prep: bool,
-        value: &[u8],
-    ) -> Result<bool, EspError> {
-        let mut state = self.state.lock().unwrap();
-
-        let recv_handle = state.recv_handle;
-        let ind_cccd_handle = state.ind_cccd_handle;
-
-        let Some(conn) = state
-            .connections
-            .iter_mut()
-            .find(|conn| conn.conn_id == conn_id)
-        else {
-            return Ok(false);
-        };
-
-        if Some(handle) == ind_cccd_handle {
-            // Subscribe or unsubscribe to our indication characteristic
-
-            if offset == 0 && value.len() == 2 {
-                let value = u16::from_le_bytes([value[0], value[1]]);
-                if value == 0x02 {
-                    if !conn.subscribed {
-                        conn.subscribed = true;
-                        self.on_subscribed(conn.peer);
-                    }
-                } else if conn.subscribed {
-                    conn.subscribed = false;
-                    self.on_unsubscribed(conn.peer);
-                }
-            }
-        } else if Some(handle) == recv_handle {
-            // Receive data on the recv characteristic
-
-            self.on_recv(addr, value, offset, conn.mtu);
-        } else {
-            return Ok(false);
-        }
-
-        Ok(true)
-    }
-
-    /// A helper method that sends a response to the peer that just sent us some data on the "recv"
-    /// characteristic.
-    ///
-    /// This is only necessary, because we support write confirmation
-    /// (which is the more complex case as compared to unconfirmed writes).
-    #[allow(clippy::too_many_arguments)]
-    fn send_write_response(
-        &self,
-        gatt_if: GattInterface,
-        conn_id: ConnectionId,
-        trans_id: TransferId,
-        handle: Handle,
-        offset: u16,
-        need_rsp: bool,
-        is_prep: bool,
-        value: &[u8],
-    ) -> Result<(), EspError> {
-        if !need_rsp {
-            return Ok(());
-        }
-
-        if is_prep {
-            let mut state = self.state.lock().unwrap();
-
-            state
-                .response
-                .attr_handle(handle)
-                .auth_req(0)
-                .offset(offset)
-                .value(value)
-                .map_err(|_| EspError::from_infallible::<ESP_FAIL>())?;
-
-            self.gatts.send_response(
-                gatt_if,
-                conn_id,
-                trans_id,
-                GattStatus::Ok,
-                Some(&state.response),
-            )?;
-        } else {
-            self.gatts
-                .send_response(gatt_if, conn_id, trans_id, GattStatus::Ok, None)?;
-        }
-
-        Ok(())
-    }
-
-    /// A helper method to handle an indication conrimation.
-    /// Basically, we need to notify the "indicate" method that sending the indication was
-    /// confirmed, so that it is free to send the next indication.
-    fn confirm_indication(&self) -> Result<(), EspError> {
-        let mut state = self.state.lock().unwrap();
-        if state.ind_confirmed.is_none() {
-            // Should not happen: means we have received a confirmation for
-            // an indication we did not send.
-            unreachable!();
-        }
-
-        state.ind_confirmed = None; // So that the main loop can send the next indication
-        self.condvar.notify_all();
-
-        Ok(())
-    }
-
     fn check_esp_status(&self, status: Result<(), EspError>) {
         if let Err(e) = status {
-            warn!("Got status: {e:?}");
+            warn!("ESP error: {e:?}");
         }
     }
 
     fn check_bt_status(&self, status: BtStatus) -> Result<(), EspError> {
         if !matches!(status, BtStatus::Success) {
-            warn!("Got status: {status:?}");
+            warn!("BT status: {status:?}");
             Err(EspError::from_infallible::<ESP_FAIL>())
         } else {
             Ok(())
@@ -690,7 +401,7 @@ impl ExampleServer {
 
     fn check_gatt_status(&self, status: GattStatus) -> Result<(), EspError> {
         if !matches!(status, GattStatus::Ok) {
-            warn!("Got status: {status:?}");
+            warn!("GATT status: {status:?}");
             Err(EspError::from_infallible::<ESP_FAIL>())
         } else {
             Ok(())
