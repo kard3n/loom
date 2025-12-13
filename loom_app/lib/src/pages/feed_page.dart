@@ -235,11 +235,67 @@ class _StoriesSection extends StatelessWidget {
   }
 }
 
+// Window for trending topics when see all is pressed
+
+class SeeAllTopicsWindow extends StatelessWidget {
+  const SeeAllTopicsWindow({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final List<String> allTopics = <String>[
+      'Product Design',
+      'Playoffs',
+      'City Nights',
+      'SaaS',
+      'Wellness',
+      'Tech News',
+      'Startups',
+      'Remote Work',
+      'Mental Health',
+      'Travel',
+      'Photography',
+      'Music',
+    ];
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('All Trending Circles'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: allTopics
+              .map(
+                (String topic) => Chip(
+                  label: Text('#$topic'),
+                  backgroundColor: theme.colorScheme.surface,
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+// Opens a new page showing all topics when see all is pressed
+
+void _SeeAllTopicsPage (BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute<SeeAllTopicsWindow>(
+      builder: (BuildContext _) => const SeeAllTopicsWindow(),
+    ),
+  );
+}
+
 class _TopicsSection extends StatelessWidget {
   const _TopicsSection({required this.topics});
 
   final List<String> topics;
-
+  
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -255,7 +311,7 @@ class _TopicsSection extends StatelessWidget {
                 'Trending circles',
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
-              TextButton(onPressed: () {}, child: const Text('See all')),
+              TextButton(onPressed: () => _SeeAllTopicsPage(context), child: const Text('See all')),
             ],
           ),
           const SizedBox(height: 8),
