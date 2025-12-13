@@ -1,5 +1,68 @@
 import 'package:flutter/material.dart';
 
+// 1. Define the new screen/window
+class ItemDetailsPage extends StatelessWidget {
+  const ItemDetailsPage({super.key, required this.item});
+
+  final _SavedItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(item.title),
+        backgroundColor: item.accent.withOpacity(0.5),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              // Template content for the new window
+              Text(
+                item.title,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'By ${item.author}',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Full Excerpt:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              // The text content you requested
+              Text(
+                item.excerpt,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 40),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context); // Close the current screen
+                  },
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Go Back'),
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class SavedPage extends StatelessWidget {
   const SavedPage({super.key});
 
@@ -102,8 +165,34 @@ class SavedPage extends StatelessWidget {
                               ],
                             ),
                           ),
+                          // The existing More button
+                          // The existing More button
                           IconButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              // FIX APPLIED HERE: Wrapped the content in SafeArea
+                              showModalBottomSheet<void>(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return SafeArea( // <-- This widget ensures system navigation bars don't overlap content
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min, // Allows the sheet to take minimum vertical space
+                                      children: <Widget>[
+                                        ListTile(
+                                          leading: const Icon(Icons.share),
+                                          title: const Text('Share Item'),
+                                          onTap: () => Navigator.pop(context),
+                                        ),
+                                        ListTile(
+                                          leading: const Icon(Icons.delete_forever, color: Colors.red),
+                                          title: const Text('Unsave', style: TextStyle(color: Colors.red)),
+                                          onTap: () => Navigator.pop(context),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
                             icon: const Icon(Icons.more_horiz_rounded),
                           ),
                         ],
@@ -122,6 +211,25 @@ class SavedPage extends StatelessWidget {
                             label: Text(item.tag),
                             padding: const EdgeInsets.symmetric(horizontal: 6),
                           ),
+                          // 2. The New Button to open a new window
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: item.accent,
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () {
+                              // Use Navigator to push the new screen/window onto the stack
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (BuildContext context) => ItemDetailsPage(item: item),
+                                ),
+                              );
+                            },
+                            child: const Text('View'),
+                          ),
+                          // The original text moved to the end
                           Text(
                             item.savedAgo,
                             style: sectionTheme.textTheme.bodySmall?.copyWith(color: sectionTheme.colorScheme.onSurfaceVariant),

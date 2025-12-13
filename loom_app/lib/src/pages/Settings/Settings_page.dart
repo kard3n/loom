@@ -53,7 +53,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: 'App preferences and notifications',
                 icon: Icons.tune_rounded,
                 accentColor: Colors.blue,
-                destination: Get.to(GeneralSettingsPage());
+                destination: GeneralSettingsPage(),
               ),
               _buildCategoryHeader(theme, 'Privacy'),
               SettingsCategoryTile(
@@ -61,7 +61,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: 'Account protection and data',
                 icon: Icons.shield_outlined,
                 accentColor: Colors.green,
-                destination: Get.to(PrivacySettingsPage());
+                destination: PrivacySettingsPage(),
               ),
               _buildCategoryHeader(theme, 'Debug'),
               SettingsCategoryTile(
@@ -69,7 +69,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: 'Technical logs and debug tools',
                 icon: Icons.bug_report_outlined,
                 accentColor: Colors.orange,
-                destination: Get.to(DebugSettingsPage());
+                destination: DebugSettingsPage(),
               ),
             ],
           ),
