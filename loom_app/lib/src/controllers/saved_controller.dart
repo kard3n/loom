@@ -26,36 +26,11 @@ class SavedController extends GetxController {
 
   Future<SavedData> fetchSavedData() async {
     return const SavedData(
-      title: 'Saved',
-      subtitle: 'Library of threads, posts, and rituals you pinned for later.',
+      title: '',
+      subtitle: '',
       seedColor: Color(0xFFFFB300),
       scaffoldBackgroundColor: Color(0xFFFFFBF2),
-      items: <SavedItemCard>[
-        SavedItemCard(
-          title: 'Creator Rituals Playbook',
-          author: 'Ava Chen',
-          excerpt: 'Step-by-step prompt kits to keep async rituals lively for distributed teams.',
-          tag: 'Playbook',
-          savedAgo: 'Saved 12m ago',
-          accent: Color(0xFFFFD54F),
-        ),
-        SavedItemCard(
-          title: 'Collab Room Launch Metrics',
-          author: 'Miles Carter',
-          excerpt: 'North-star metrics and fallback levers for the collab room GA rollout.',
-          tag: 'Insights',
-          savedAgo: 'Saved 1h ago',
-          accent: Color(0xFFFFAB40),
-        ),
-        SavedItemCard(
-          title: 'Healthy Communities AMA',
-          author: 'Sasha Park',
-          excerpt: 'Top 5 questions to ask when shaping kinder spaces on Loom.',
-          tag: 'Panel',
-          savedAgo: 'Saved yesterday',
-          accent: Color(0xFFFFCC80),
-        ),
-      ],
+      items: <SavedItemCard>[],
     );
   }
 }

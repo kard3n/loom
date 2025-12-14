@@ -17,7 +17,7 @@ class ClipsPage extends StatelessWidget {
       return ListView.builder(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 32, 16, 96),
-        itemCount: clips.length + 1,
+        itemCount: clips.isEmpty ? 2 : clips.length + 1,
         itemBuilder: (BuildContext context, int index) {
           if (index == 0) {
             return Padding(
@@ -25,6 +25,20 @@ class ClipsPage extends StatelessWidget {
               child: Text(
                 'Fresh clips',
                 style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            );
+          }
+
+          if (clips.isEmpty) {
+            return Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No clips yet.',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
               ),
             );
           }
@@ -46,7 +60,7 @@ class ClipsPage extends StatelessWidget {
                         child: Image.network(
                           clip.imageUrl ?? '',
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (context, error, stackTrace) => Container(
                             color: theme.colorScheme.surfaceContainerHighest,
                             alignment: Alignment.center,
                             child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurfaceVariant),
@@ -59,7 +73,7 @@ class ClipsPage extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.55),
+                            color: Colors.black.withValues(alpha: 0.55),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -73,7 +87,7 @@ class ClipsPage extends StatelessWidget {
                         right: 12,
                         child: IconButton.filled(
                           onPressed: () {},
-                          style: IconButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.85)),
+                          style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.85)),
                           icon: const Icon(Icons.play_arrow_rounded),
                         ),
                       ),

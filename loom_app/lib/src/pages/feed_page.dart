@@ -5,46 +5,9 @@ import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/post.dart';
 import 'package:loom_app/src/models/profile.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
-import 'package:path_provider/path_provider.dart'; // REQUIRED: Add this import
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
-
-  /// Helper to fetch the real user from Rust and map it to the UI Profile model
-  Future<Profile> _fetchRealProfile(String uuid) async {
-    try {
-      // 1. Open the DB (Duplicating path logic here for safety)
-      final directory = await getApplicationDocumentsDirectory();
-      final dbPath = "${directory.path}/loom_app.db";
-      final database = await rust.AppDatabase(path: dbPath);
-
-      // 2. Fetch user from Rust
-      final rustUser = await database.getUserById(uuid: uuid);
-
-      // 3. Map to Profile
-      return Profile(
-        id: rustUser.uuid,
-        name: rustUser.username,
-        handle: '@${rustUser.username.toLowerCase().replaceAll(' ', '')}',
-        status: rustUser.status,
-        bio: rustUser.bio,
-        lastSeenLabel: 'Now',
-        isCurrentUser: true,
-      );
-    } catch (e) {
-      // Fallback if something goes wrong (e.g. user not created yet)
-      print("Error fetching profile: $e");
-      return const Profile(
-        id: 'me',
-        name: 'Creator',
-        handle: '@creator',
-        status: 'Offline',
-        bio: '',
-        lastSeenLabel: '',
-        isCurrentUser: true,
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,72 +35,101 @@ class FeedPage extends StatelessWidget {
       body: Obx(() {
         final currentUuid = postsController.currentUserId.value;
 
+        // Try to resolve the current user profile from the controller.
+        final Profile? me = currentUuid.isEmpty ? null : profilesController.byId(currentUuid);
+
         // If we don't have an ID yet, show loading
         if (currentUuid.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Use FutureBuilder to fetch the detailed user data from Rust
-        return FutureBuilder<Profile>(
-          future: _fetchRealProfile(currentUuid),
-          builder: (context, snapshot) {
-            // While fetching the specific user details...
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final Profile me = snapshot.data!;
-            final greeting = rust.greet(name: me.name);
-
-            // Combine 'me' with other fake profiles for the stories bar
-            final stories = <Profile>[
-              me,
-              ...profilesController.profiles.where((p) => !p.isCurrentUser)
-            ];
-
-            final allPosts = postsController.posts;
-            final topics = postsController.trendingTags(limit: 6);
-
-            return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: <Widget>[
-                SliverToBoxAdapter(
-                  child: _HomeHeader(
-                    greeting: greeting,
-                    subtitle: 'Here is what your circles are sharing today.',
+        if (me == null) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(Icons.person_outline_rounded, size: 56, color: theme.colorScheme.onSurfaceVariant),
+                  const SizedBox(height: 12),
+                  Text('No profile found', style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Create a profile to start posting and seeing your feed.',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                SliverToBoxAdapter(
-                  child: _StoriesSection(stories: stories),
-                ),
-                SliverToBoxAdapter(
-                  child: _TopicsSection(
-                    topics: topics,
-                    title: 'Trending circles',
-                    seeAllLabel: 'See all',
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                          (BuildContext context, int index) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                              bottom: index == allPosts.length - 1 ? 80 : 16),
-                          child: _PostCard(
-                              post: allPosts[index],
-                              author: profilesController
-                                  .byId(allPosts[index].authorId)),
-                        );
-                      },
-                      childCount: allPosts.length,
+                ],
+              ),
+            ),
+          );
+        }
+
+        final greeting = rust.greet(name: me.name);
+
+        final stories = <Profile>[
+          me,
+          ...profilesController.profiles.where((p) => !p.isCurrentUser),
+        ];
+
+        final allPosts = postsController.posts;
+        final topics = postsController.trendingTags(limit: 6);
+
+        return CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: <Widget>[
+            SliverToBoxAdapter(
+              child: _HomeHeader(
+                greeting: greeting,
+                subtitle: 'Here is what your circles are sharing today.',
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: _StoriesSection(stories: stories),
+            ),
+            SliverToBoxAdapter(
+              child: _TopicsSection(
+                topics: topics,
+                title: 'Billboard',
+                seeAllLabel: 'See all',
+              ),
+            ),
+            if (allPosts.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+                  child: Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'No posts yet.',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
                     ),
                   ),
                 ),
-              ],
-            );
-          },
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (BuildContext context, int index) {
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: index == allPosts.length - 1 ? 80 : 16),
+                        child: _PostCard(
+                          post: allPosts[index],
+                          author: profilesController.byId(allPosts[index].authorId),
+                        ),
+                      );
+                    },
+                    childCount: allPosts.length,
+                  ),
+                ),
+              ),
+          ],
         );
       }),
     );
@@ -346,7 +338,7 @@ class _StoriesSection extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: stories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (BuildContext context, int index) {
           final Profile story = stories[index];
           return GestureDetector(
@@ -354,7 +346,7 @@ class _StoriesSection extends StatelessWidget {
               if (story.isCurrentUser) {
                 // Could open edit profile here
               } else {
-                print("View story for ${story.name}");
+                debugPrint("View story for ${story.name}");
               }
             },
             child: Column(
@@ -449,7 +441,7 @@ class _PostCard extends StatelessWidget {
         children: <Widget>[
           ListTile(
             leading: CircleAvatar(
-              backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
               child: Text(
                 _initial(author?.name ?? '?'),
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -501,10 +493,10 @@ class _PostCard extends StatelessWidget {
                       return Container(
                         color: theme.colorScheme.surfaceContainerHighest,
                         alignment: Alignment.center,
-                        child: CircularProgressIndicator(value: expectedBytes != null ? loadedBytes! / expectedBytes : null),
+                        child: CircularProgressIndicator(value: expectedBytes != null ? loadedBytes / expectedBytes : null),
                       );
                     },
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (context, error, stackTrace) => Container(
                       color: theme.colorScheme.surfaceContainerHighest,
                       alignment: Alignment.center,
                       child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurfaceVariant),

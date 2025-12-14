@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'package:flutter/material.dart';
 
 // --- Main Settings Entry (Subprogram Definition) ---
@@ -19,8 +21,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  String _query = '';
-
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -30,7 +30,6 @@ class _SettingsPageState extends State<SettingsPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 32, 16, 12),
           child: TextField(
-            onChanged: (String value) => setState(() => _query = value),
             decoration: InputDecoration(
               hintText: 'Search settings...',
               prefixIcon: const Icon(Icons.search_rounded),

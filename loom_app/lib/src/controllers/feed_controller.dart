@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import 'package:loom_app/src/rust/api/simple.dart';
 
 class FeedController extends GetxController {
   final RxString greeting = ''.obs;
@@ -30,60 +29,19 @@ class FeedController extends GetxController {
   }
 
   Future<FeedData> fetchFeedData() async {
-    final name = await fetchUserDisplayName();
     return FeedData(
-      greeting: greet(name: name),
-      headerSubtitle: 'Here is what your circles are sharing today.',
-      trendingTitle: 'Trending circles',
-      seeAllLabel: 'See all',
-      stories: const <StoryCard>[
-        StoryCard(name: 'You', isCurrentUser: true),
-        StoryCard(name: 'Ava Chen'),
-        StoryCard(name: 'Miles Carter'),
-        StoryCard(name: 'Sasha Park'),
-        StoryCard(name: 'Diego Luna'),
-        StoryCard(name: 'Lina Patel'),
-      ],
-      feed: const <PostCard>[
-        PostCard(
-          authorName: 'Ava Chen',
-          authorHandle: '@avacreates',
-          timeAgo: '12m',
-          text: 'Revamped the onboarding flow for Loom and the completion rate jumped 23%. Iteration pays off.',
-          imageUrl: 'https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=900&q=80',
-          likes: 312,
-          comments: 54,
-          shares: 18,
-          tags: <String>['ux', 'design', 'product'],
-        ),
-        PostCard(
-          authorName: 'Miles Carter',
-          authorHandle: '@milesloops',
-          timeAgo: '1h',
-          text: 'Launch day! Our collab room feature is live for everyone. Drop by and let me know what you think.',
-          imageUrl: 'https://images.unsplash.com/photo-1474631245212-32dc3c8310c6?auto=format&fit=crop&w=900&q=80',
-          likes: 512,
-          comments: 102,
-          shares: 41,
-          tags: <String>['launch', 'community'],
-        ),
-        PostCard(
-          authorName: 'Sasha Park',
-          authorHandle: '@sashapark',
-          timeAgo: '3h',
-          text: 'AMA tomorrow on building healthy online spaces. Collecting questions until 9pm ET!',
-          likes: 210,
-          comments: 67,
-          shares: 9,
-          tags: <String>['moderation', 'ama'],
-        ),
-      ],
-      topics: const <String>['Product Design', 'Playoffs', 'City Nights', 'SaaS', 'Wellness'],
+      greeting: '',
+      headerSubtitle: '',
+      trendingTitle: '',
+      seeAllLabel: '',
+      stories: const <StoryCard>[],
+      feed: const <PostCard>[],
+      topics: const <String>[],
     );
   }
 
   Future<String> fetchUserDisplayName() async {
-    return 'Creator';
+    return '';
   }
 }
 

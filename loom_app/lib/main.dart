@@ -4,7 +4,7 @@ import 'package:loom_app/src/controllers/app_values_controller.dart';
 import 'package:loom_app/src/controllers/main_controller.dart';
 import 'package:loom_app/src/pages/friends_page.dart';
 import 'package:loom_app/src/pages/feed_page.dart';
-import 'package:loom_app/src/pages/Settings/Settings_page.dart';
+import 'package:loom_app/src/pages/Settings/settings_page.dart';
 import 'package:loom_app/src/pages/saved_page.dart';
 import 'package:loom_app/src/pages/totems_page.dart';
 import 'package:loom_app/src/bindings/app_bindings.dart';
@@ -64,7 +64,6 @@ class NewTotem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final values = Get.find<AppValuesController>();
 
     return Obx(() => Scaffold(
       appBar: AppBar(
@@ -402,12 +401,6 @@ class _HomeScreenBodyState extends State<_HomeScreenBody> {
 
   void _openInviteFriendsWindow() {
     Get.to(() => const InviteFriends());
-  }
-
-  void _showAction(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override

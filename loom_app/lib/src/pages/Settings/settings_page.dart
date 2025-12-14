@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 // --- Main Settings Entry (Subprogram Definition) ---
 // This is the item you would use in your Navigation Rail or Bottom Nav
@@ -12,15 +11,8 @@ final settingsNavigationItem = _NavigationItem(
   onFabTap: () {}, // Trigger search focus
 );
 
-class SettingsPage extends GetView<SettingsController> {
+class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
-
-  @override
-  State<SettingsPage> createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends State<SettingsPage> {
-  String _query = '';
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +23,6 @@ class _SettingsPageState extends State<SettingsPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 32, 16, 12),
           child: TextField(
-            onChanged: (String value) => setState(() => _query = value),
             decoration: InputDecoration(
               hintText: 'Search settings...',
               prefixIcon: const Icon(Icons.search_rounded),
@@ -48,7 +39,7 @@ class _SettingsPageState extends State<SettingsPage> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
             children: [
               _buildCategoryHeader(theme, 'General'),
-              SettingsCategoryTile(
+              const SettingsCategoryTile(
                 title: 'General Settings',
                 subtitle: 'App preferences and notifications',
                 icon: Icons.tune_rounded,
@@ -56,7 +47,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 destination: GeneralSettingsPage(),
               ),
               _buildCategoryHeader(theme, 'Privacy'),
-              SettingsCategoryTile(
+              const SettingsCategoryTile(
                 title: 'Privacy & Security',
                 subtitle: 'Account protection and data',
                 icon: Icons.shield_outlined,
@@ -64,7 +55,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 destination: PrivacySettingsPage(),
               ),
               _buildCategoryHeader(theme, 'Debug'),
-              SettingsCategoryTile(
+              const SettingsCategoryTile(
                 title: 'Developer Options',
                 subtitle: 'Technical logs and debug tools',
                 icon: Icons.bug_report_outlined,

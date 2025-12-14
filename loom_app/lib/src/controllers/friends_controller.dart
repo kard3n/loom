@@ -40,45 +40,16 @@ class FriendsController extends GetxController {
 
   Future<FriendsData> fetchFriendsData() async {
     return const FriendsData(
-      title: 'Friends',
-      subtitle: 'Check in, send energy, hop into a room together.',
+      title: '',
+      subtitle: '',
       seedColor: Color(0xFFFF8A80),
       scaffoldBackgroundColor: Color(0xFFFFF5F2),
-      manageProfileLabel: 'Profile',
-      manageBlockLabel: 'Block',
-      manageDeleteLabel: 'Delete',
-      blockedSnackbarTemplate: 'Blocked {name}',
-      deletedSnackbarTemplate: 'Deleted {name}',
-      friends: <FriendCard>[
-        FriendCard(
-          name: 'Ava Chen',
-          status: 'Sketching new identity for Loom.',
-          lastSeen: '19 hours ago',
-          vibe: Color(0xFFFF8A80),
-          tags: <String>['Design mode', 'Streaming'],
-        ),
-        FriendCard(
-          name: 'Miles Carter',
-          status: 'Pair programming with community.',
-          lastSeen: '15 minutes ago',
-          vibe: Color(0xFFFFB74D),
-          tags: <String>['Live now'],
-        ),
-        FriendCard(
-          name: 'Sasha Park',
-          status: 'Collecting Qs for AMA tomorrow.',
-          lastSeen: '4 days ago',
-          vibe: Color(0xFF9575CD),
-          tags: <String>['Focus', 'Audio'],
-        ),
-        FriendCard(
-          name: 'Lina Patel',
-          status: 'Planning the winter retreat.',
-          lastSeen: '42 seconds ago',
-          vibe: Color(0xFF4FC3F7),
-          tags: <String>['Travel', 'Docs open'],
-        ),
-      ],
+      manageProfileLabel: '',
+      manageBlockLabel: '',
+      manageDeleteLabel: '',
+      blockedSnackbarTemplate: '',
+      deletedSnackbarTemplate: '',
+      friends: <FriendCard>[],
     );
   }
 }

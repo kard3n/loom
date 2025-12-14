@@ -42,7 +42,7 @@ class ProfilesController extends GetxController {
   Future<void> loadProfiles() async {
     try {
       final dbPath = await _getDatabasePath();
-      final database = await rust.AppDatabase(path: dbPath);
+      final database = rust.AppDatabase(path: dbPath);
       final rustUsers = await database.getAllUsers();
 
       profiles.assignAll(
