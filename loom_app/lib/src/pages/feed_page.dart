@@ -7,95 +7,9 @@ import 'package:loom_app/src/models/profile.dart';
 import 'package:loom_app/src/pages/friend_profile_page.dart';
 import 'package:loom_app/src/pages/profile_page.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
-// 1. ADD THE MOBILE SCANNER IMPORT
-import 'package:mobile_scanner/mobile_scanner.dart';
-
-// --- QR SCANNER SCREEN (New Widget for the Scanner View) ---
-
-class QrScannerScreen extends StatefulWidget {
-  const QrScannerScreen({super.key});
-@override
-  State<QrScannerScreen> createState() => _QrScannerScreenState();
-}
-
-class _QrScannerScreenState extends State<QrScannerScreen> {
-  // Define controller
-  final MobileScannerController scannerController = MobileScannerController();
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan QR Code'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: MobileScanner(
-        // Set the detection code types if needed (e.g., only QR codes)
-        // scanSpec: const ScanSpec(
-        //   scanSpec: ScanCode.qr,
-        //   format: BarcodeFormat.all,
-        // ),
-        controller: scannerController,
-        onDetect: (BarcodeCapture capture) {
-          final Barcode? barcode = capture.barcodes.firstOrNull;
-          if (barcode != null && barcode.rawValue != null) {
-            final String code = barcode.rawValue!;
-            scannerController.stop();
-            Future.delayed(const Duration(milliseconds: 100), () {
-              if (mounted) {
-              Navigator.of(context).pop(code);
-              }
-            });
-          }
-        },
-      ),
-    );
-  }
-}
-
-// --- FEED PAGE (Unchanged) ---
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
-
-  String _getDatabasePath() {
-    final directory = Directory.current;
-    return "${directory.path}/loom_app.db";
-  }
-
-  /// Helper to fetch the real user from Rust and map it to the UI Profile model
-  Future<Profile> _fetchRealProfile(String uuid) async {
-    try {
-      // 1. Open the DB (Duplicating path logic here for safety)
-      final dbPath = _getDatabasePath();
-      final database = await rust.AppDatabase(path: dbPath);
-
-      // 2. Fetch user from Rust
-      final rustUser = await database.getUserById(uuid: uuid);
-
-      // 3. Map to Profile
-      return Profile(
-        id: rustUser.uuid,
-        name: rustUser.username,
-        handle: '@${rustUser.username.toLowerCase().replaceAll(' ', '')}',
-        status: rustUser.status,
-        bio: rustUser.bio,
-        lastSeenLabel: 'Now',
-        isCurrentUser: true,
-      );
-    } catch (e) {
-      // Fallback if something goes wrong (e.g. user not created yet)
-      print("Error fetching profile: $e");
-      return const Profile(
-        id: 'me',
-        name: 'Creator',
-        handle: '@creator',
-        status: 'Offline',
-        bio: '',
-        lastSeenLabel: '',
-        isCurrentUser: true,
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -392,46 +306,6 @@ class _HomeHeader extends StatefulWidget {
 }
 
 class _HomeHeaderState extends State<_HomeHeader> {
-  // Optional: State to show the last scan result, or change the greeting
-  String? _scanResult;
-
-  void _scanQrCode() async {
-    // Navigate to the scanner screen and wait for the result (a string)
-    final result = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (context) => const QrScannerScreen(),
-      ),
-    );
-
-    if (result != null) {
-      // Handle the scanned result
-      setState(() {
-        _scanResult = result;
-      });
-
-      // Provide feedback to the user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('QR Scan Successful: $result'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-
-      // --- LOGIC EXAMPLE: Navigate to a Profile Page based on the scanned ID ---
-      // In a real app, 'result' could be an ID to look up in profilesController
-      final profilesController = Get.find<ProfilesController>();
-      final Profile? scannedProfile = profilesController.byId(result);
-
-      if (scannedProfile != null) {
-        Navigator.of(context).push(
-          MaterialPageRoute<ProfilePage>(
-            builder: (BuildContext _) => ProfilePage(friendName: scannedProfile.name),
-          ),
-        );
-      }
-    }
-  }
-
   @override
   State<_HomeHeader> createState() => _HomeHeaderState();
 }
