@@ -15,7 +15,7 @@ class SavedPage extends StatelessWidget {
     return Obx(() {
       final ThemeData sectionTheme = base;
 
-      final items = postsController.posts.where((p) => !p.isClip).toList(growable: false);
+      final items = postsController.savedPosts(includeClips: false);
       return Theme(
         data: sectionTheme,
         child: ListView.builder(

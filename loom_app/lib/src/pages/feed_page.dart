@@ -4,6 +4,7 @@ import 'package:loom_app/src/controllers/posts_controller.dart';
 import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/post.dart';
 import 'package:loom_app/src/models/profile.dart';
+import 'package:loom_app/src/pages/friend_profile_page.dart';
 import 'package:loom_app/src/pages/profile_page.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
 // 1. ADD THE MOBILE SCANNER IMPORT
@@ -123,7 +124,9 @@ class FeedPage extends StatelessWidget {
         final currentUuid = postsController.currentUserId.value;
 
         // Try to resolve the current user profile from the controller.
-        final Profile? me = currentUuid.isEmpty ? null : profilesController.byId(currentUuid);
+        final Profile? me = currentUuid.isEmpty
+            ? null
+            : profilesController.byId(currentUuid);
 
         // If we don't have an ID yet, show loading
         if (currentUuid.isEmpty) {
@@ -137,13 +140,23 @@ class FeedPage extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Icon(Icons.person_outline_rounded, size: 56, color: theme.colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.person_outline_rounded,
+                    size: 56,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(height: 12),
-                  Text('No profile found', style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
+                  Text(
+                    'No profile found',
+                    style: theme.textTheme.titleMedium,
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     'Create a profile to start posting and seeing your feed.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -169,9 +182,7 @@ class FeedPage extends StatelessWidget {
                 subtitle: 'Here is what your circles are sharing today.',
               ),
             ),
-            SliverToBoxAdapter(
-              child: _ProfilesSection(profiles: profiles),
-            ),
+            SliverToBoxAdapter(child: _ProfilesSection(profiles: profiles)),
             SliverToBoxAdapter(
               child: _TopicsSection(
                 topics: topics,
@@ -185,12 +196,16 @@ class FeedPage extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
                   child: Card(
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
                         'No posts yet.',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ),
@@ -198,20 +213,27 @@ class FeedPage extends StatelessWidget {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: index == allPosts.length - 1 ? 80 : 16),
-                        child: _PostCard(
-                          post: allPosts[index],
-                          author: profilesController.byId(allPosts[index].authorId),
+                  delegate: SliverChildBuilderDelegate((
+                    BuildContext context,
+                    int index,
+                  ) {
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        bottom: index == allPosts.length - 1 ? 80 : 16,
+                      ),
+                      child: _PostCard(
+                        post: allPosts[index],
+                        author: profilesController.byId(
+                          allPosts[index].authorId,
                         ),
-                      );
-                    },
-                    childCount: allPosts.length,
-                  ),
+                      ),
+                    );
+                  }, childCount: allPosts.length),
                 ),
               ),
           ],
@@ -240,7 +262,8 @@ class _CreatePostSheetContent extends StatefulWidget {
   const _CreatePostSheetContent({required this.authorId});
 
   @override
-  State<_CreatePostSheetContent> createState() => _CreatePostSheetContentState();
+  State<_CreatePostSheetContent> createState() =>
+      _CreatePostSheetContentState();
 }
 
 class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
@@ -251,8 +274,8 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
     if (_titleController.text.trim().isNotEmpty ||
         _bodyController.text.trim().isNotEmpty) {
       Get.find<PostsController>().addPost(
-          _titleController.text,
-          _bodyController.text
+        _titleController.text,
+        _bodyController.text,
       );
       Navigator.pop(context);
     }
@@ -283,8 +306,9 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
               ),
               Text(
                 "Create New Post",
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               FilledButton.tonal(
                 onPressed: _handlePost,
@@ -327,7 +351,10 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
                     const SnackBar(content: Text('Open image picker...')),
                   );
                 },
-                icon: Icon(Icons.image_outlined, color: theme.colorScheme.primary),
+                icon: Icon(
+                  Icons.image_outlined,
+                  color: theme.colorScheme.primary,
+                ),
                 tooltip: "Add Image",
               ),
               IconButton(
@@ -340,10 +367,7 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
                 tooltip: "Add Tags",
               ),
               const Spacer(),
-              Text(
-                "0/280",
-                style: theme.textTheme.bodySmall,
-              ),
+              Text("0/280", style: theme.textTheme.bodySmall),
             ],
           ),
         ],
@@ -427,7 +451,10 @@ class _HomeHeaderState extends State<_HomeHeader> {
               ),
             ),
             child: Center(
-              child: Icon(Icons.bolt_rounded, color: theme.colorScheme.onPrimary),
+              child: Icon(
+                Icons.bolt_rounded,
+                color: theme.colorScheme.onPrimary,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -436,15 +463,19 @@ class _HomeHeaderState extends State<_HomeHeader> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  greetingText, // Use the updated greeting text
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  greeting,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  widget.subtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  subtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -467,95 +498,153 @@ class _ProfilesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    Profile? currentUser;
+    final List<Profile> friends = <Profile>[];
+    for (final Profile profile in profiles) {
+      if (profile.isCurrentUser && currentUser == null) {
+        currentUser = profile;
+      } else {
+        friends.add(profile);
+      }
+    }
+
     return SizedBox(
       height: 128,
-      child: ListView.separated(
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: profiles.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 12),
-        itemBuilder: (BuildContext context, int index) {
-          final Profile profile = profiles[index];
-          return GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<ProfilePage>(
-                  builder: (BuildContext _) => ProfilePage(friendName: profile.name),
+        child: Row(
+          children: <Widget>[
+            if (currentUser != null) ...<Widget>[
+              _ProfileBarItem(
+                profile: currentUser,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<ProfilePage>(
+                      builder: (BuildContext _) => const ProfilePage(),
+                    ),
+                  );
+                },
+              ),
+              if (friends.isNotEmpty) const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: friends.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                itemBuilder: (BuildContext context, int index) {
+                  final Profile profile = friends[index];
+                  return _ProfileBarItem(
+                    profile: profile,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<FriendProfilePage>(
+                          builder: (BuildContext _) =>
+                              FriendProfilePage(friendName: profile.name),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileBarItem extends StatelessWidget {
+  const _ProfileBarItem({required this.profile, required this.onTap});
+
+  final Profile profile;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: <Color>[
+                  theme.colorScheme.tertiary,
+                  theme.colorScheme.secondary,
+                ],
+              ),
+            ),
+            child: Container(
+              margin: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: theme.colorScheme.surface,
+                border: Border.all(color: theme.colorScheme.surface, width: 2),
+              ),
+              child: CircleAvatar(
+                backgroundColor: profile.isCurrentUser
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.surfaceContainerHighest,
+                child: Text(
+                  _initial(profile.name),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: profile.isCurrentUser
+                        ? theme.colorScheme.onPrimary
+                        : null,
+                  ),
                 ),
-              );
-            },
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 72,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: <Color>[theme.colorScheme.tertiary, theme.colorScheme.secondary],
-                    ),
-                  ),
-                  child: Container(
-                    margin: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.surface,
-                      border: Border.all(color: theme.colorScheme.surface, width: 2),
-                    ),
-                    child: CircleAvatar(
-                      backgroundColor: profile.isCurrentUser
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.surfaceContainerHighest,
-                      child: Text(
-                        _initial(profile.name),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: profile.isCurrentUser ? theme.colorScheme.onPrimary : null,
-                        ),
-                      ),
-                    ),
-                  ),
+                Text(
+                  profile.name,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
                 ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: 72,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        profile.name,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        profile.lastSeenLabel,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 2),
+                Text(
+                  profile.lastSeenLabel,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
 }
 
 class _TopicsSection extends StatelessWidget {
-  const _TopicsSection({required this.topics, required this.title, required this.seeAllLabel});
+  const _TopicsSection({
+    required this.topics,
+    required this.title,
+    required this.seeAllLabel,
+  });
   final List<String> topics;
   final String title;
   final String seeAllLabel;
@@ -571,7 +660,12 @@ class _TopicsSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               TextButton(onPressed: () {}, child: Text(seeAllLabel)),
             ],
           ),
@@ -579,7 +673,15 @@ class _TopicsSection extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: topics.map((String topic) => Chip(label: Text('#$topic'), backgroundColor: theme.colorScheme.surface, side: BorderSide(color: theme.colorScheme.outlineVariant))).toList(),
+            children: topics
+                .map(
+                  (String topic) => Chip(
+                    label: Text('#$topic'),
+                    backgroundColor: theme.colorScheme.surface,
+                    side: BorderSide(color: theme.colorScheme.outlineVariant),
+                  ),
+                )
+                .toList(),
           ),
         ],
       ),
@@ -595,6 +697,7 @@ class _PostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final postsController = Get.find<PostsController>();
     return Card(
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -605,17 +708,25 @@ class _PostCard extends StatelessWidget {
         children: <Widget>[
           ListTile(
             leading: CircleAvatar(
-              backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+              backgroundColor: theme.colorScheme.primary.withValues(
+                alpha: 0.12,
+              ),
               child: Text(
                 _initial(author?.name ?? '?'),
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             title: Text(
               author?.name ?? 'Unknown',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            subtitle: Text('${author?.handle ?? ''} • ${post.timeAgoLabel}'.trim()),
+            subtitle: Text(
+              '${author?.handle ?? ''} • ${post.timeAgoLabel}'.trim(),
+            ),
             trailing: IconButton(
               onPressed: () {},
               icon: const Icon(Icons.more_horiz_rounded),
@@ -635,10 +746,7 @@ class _PostCard extends StatelessWidget {
           if (post.text.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              child: Text(
-                post.text,
-                style: theme.textTheme.bodyLarge,
-              ),
+              child: Text(post.text, style: theme.textTheme.bodyLarge),
             ),
           if (post.imageUrl != null)
             Padding(
@@ -650,20 +758,36 @@ class _PostCard extends StatelessWidget {
                   child: Image.network(
                     post.imageUrl!,
                     fit: BoxFit.cover,
-                    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      final double? expectedBytes = loadingProgress.expectedTotalBytes?.toDouble();
-                      final double loadedBytes = loadingProgress.cumulativeBytesLoaded.toDouble();
-                      return Container(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        alignment: Alignment.center,
-                        child: CircularProgressIndicator(value: expectedBytes != null ? loadedBytes / expectedBytes : null),
-                      );
-                    },
+                    loadingBuilder:
+                        (
+                          BuildContext context,
+                          Widget child,
+                          ImageChunkEvent? loadingProgress,
+                        ) {
+                          if (loadingProgress == null) return child;
+                          final double? expectedBytes = loadingProgress
+                              .expectedTotalBytes
+                              ?.toDouble();
+                          final double loadedBytes = loadingProgress
+                              .cumulativeBytesLoaded
+                              .toDouble();
+                          return Container(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            alignment: Alignment.center,
+                            child: CircularProgressIndicator(
+                              value: expectedBytes != null
+                                  ? loadedBytes / expectedBytes
+                                  : null,
+                            ),
+                          );
+                        },
                     errorBuilder: (context, error, stackTrace) => Container(
                       color: theme.colorScheme.surfaceContainerHighest,
                       alignment: Alignment.center,
-                      child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurfaceVariant),
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ),
@@ -675,7 +799,14 @@ class _PostCard extends StatelessWidget {
               child: Wrap(
                 spacing: 8,
                 runSpacing: 4,
-                children: post.tags.map((String tag) => Chip(label: Text('#$tag'), padding: const EdgeInsets.symmetric(horizontal: 4))).toList(),
+                children: post.tags
+                    .map(
+                      (String tag) => Chip(
+                        label: Text('#$tag'),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                    )
+                    .toList(),
               ),
             ),
           Padding(
@@ -683,10 +814,27 @@ class _PostCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: <Widget>[
-                _PostStat(icon: Icons.favorite_border_rounded, value: post.likes),
-                _PostStat(icon: Icons.mode_comment_outlined, value: post.comments),
+                _PostStat(
+                  icon: Icons.favorite_border_rounded,
+                  value: post.likes,
+                ),
+                _PostStat(
+                  icon: Icons.mode_comment_outlined,
+                  value: post.comments,
+                ),
                 _PostStat(icon: Icons.repeat_rounded, value: post.shares),
-                IconButton(onPressed: () {}, icon: const Icon(Icons.bookmark_outline_rounded)),
+                Obx(() {
+                  final isSaved = postsController.isSaved(post.id);
+                  return IconButton(
+                    onPressed: () => postsController.toggleSaved(post.id),
+                    icon: Icon(
+                      isSaved
+                          ? Icons.bookmark_added_rounded
+                          : Icons.bookmark_outline_rounded,
+                    ),
+                    tooltip: isSaved ? 'Unsave' : 'Save',
+                  );
+                }),
               ],
             ),
           ),

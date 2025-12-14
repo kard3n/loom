@@ -10,8 +10,31 @@ import 'package:uuid/uuid.dart';
 class PostsController extends GetxController {
   final RxList<Post> posts = <Post>[].obs;
 
+  // In-memory set of post IDs the user has saved.
+  // (Not persisted across app restarts.)
+  final RxSet<String> savedPostIds = <String>{}.obs;
+
   // Stores the current user's UUID. Default is empty until loaded.
   final RxString currentUserId = "".obs;
+
+  bool isSaved(String postId) => savedPostIds.contains(postId);
+
+  void toggleSaved(String postId) {
+    if (savedPostIds.contains(postId)) {
+      savedPostIds.remove(postId);
+    } else {
+      savedPostIds.add(postId);
+    }
+    // RxSet mutations may not always notify listeners unless refreshed.
+    savedPostIds.refresh();
+  }
+
+  List<Post> savedPosts({bool includeClips = false}) {
+    final ids = savedPostIds;
+    return posts
+        .where((p) => (includeClips || !p.isClip) && ids.contains(p.id))
+        .toList(growable: false);
+  }
 
   @override
   void onInit() {
