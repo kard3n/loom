@@ -5,17 +5,22 @@ import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/post.dart';
 import 'package:loom_app/src/models/profile.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
-import 'package:path_provider/path_provider.dart'; // REQUIRED: Add this import
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
+
+  String _getDatabasePath() {
+    final directory = Directory.current;
+    return "${directory.path}/loom_app.db";
+  }
 
   /// Helper to fetch the real user from Rust and map it to the UI Profile model
   Future<Profile> _fetchRealProfile(String uuid) async {
     try {
       // 1. Open the DB (Duplicating path logic here for safety)
-      final directory = await getApplicationDocumentsDirectory();
-      final dbPath = "${directory.path}/loom_app.db";
+      final dbPath = _getDatabasePath();
       final database = await rust.AppDatabase(path: dbPath);
 
       // 2. Fetch user from Rust
