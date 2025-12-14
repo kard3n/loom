@@ -14,10 +14,16 @@ class PostsController extends GetxController {
   // (Not persisted across app restarts.)
   final RxSet<String> savedPostIds = <String>{}.obs;
 
+  // In-memory set of post IDs the user has pinned to their profile.
+  // (Not persisted across app restarts.)
+  final RxSet<String> pinnedPostIds = <String>{}.obs;
+
   // Stores the current user's UUID. Default is empty until loaded.
   final RxString currentUserId = "".obs;
 
   bool isSaved(String postId) => savedPostIds.contains(postId);
+
+  bool isPinned(String postId) => pinnedPostIds.contains(postId);
 
   void toggleSaved(String postId) {
     if (savedPostIds.contains(postId)) {
@@ -29,12 +35,28 @@ class PostsController extends GetxController {
     savedPostIds.refresh();
   }
 
+  void togglePinned(String postId) {
+    if (pinnedPostIds.contains(postId)) {
+      pinnedPostIds.remove(postId);
+    } else {
+      pinnedPostIds.add(postId);
+    }
+    pinnedPostIds.refresh();
+  }
+
   List<Post> savedPosts({bool includeClips = false}) {
     final ids = savedPostIds;
     return posts
         .where((p) => (includeClips || !p.isClip) && ids.contains(p.id))
         .toList(growable: false);
   }
+
+        List<Post> pinnedPosts({bool includeClips = false}) {
+          final ids = pinnedPostIds;
+          return posts
+          .where((p) => (includeClips || !p.isClip) && ids.contains(p.id))
+          .toList(growable: false);
+        }
 
   @override
   void onInit() {
@@ -189,7 +211,7 @@ class PostsController extends GetxController {
     }
   }
 
-  Future<void> addPost(String title, String body) async {
+  Future<void> addPost(String title, String body, {String? imagePath}) async {
     // Check if we have a valid user ID before posting
     if (currentUserId.value.isEmpty) {
       Get.snackbar("Error", "You are not logged in.");
@@ -208,7 +230,7 @@ class PostsController extends GetxController {
         body: body,
         timestamp: DateTime.now().toUtc(),
         sourceTotem: sourceTotemId,
-        image: null,
+        image: imagePath,
       );
 
       await db.createPost(post: newPost);
@@ -218,6 +240,44 @@ class PostsController extends GetxController {
     } catch (e) {
       Get.snackbar("Error", "Failed to create post: $e");
       debugPrint(e.toString());
+    }
+  }
+
+  // 👇 ADDED METHOD: Logic to add a fake friend
+  /// A debug utility to quickly add a test user (fake friend) to the database.
+  Future<void> addFakeFriend() async {
+    // Determine the next friend number for a unique name
+    final profilesController = Get.isRegistered<ProfilesController>()
+        ? Get.find<ProfilesController>()
+        : null;
+
+    // Use the current number of profiles + 1 for unique numbering
+    final friendNumber = (profilesController?.profiles.length ?? 0) + 1;
+    final fakeUuid = const Uuid().v4();
+    final fakeUsername = 'Mock Friend $friendNumber';
+    final fakeStatus = 'Testing Features';
+    final fakeBio = 'This is a test profile created in debug mode.';
+
+    try {
+      // 1. Create User in Rust DB using the existing helper method
+      await _registerUserInDb(
+        uuid: fakeUuid,
+        username: fakeUsername,
+        status: fakeStatus,
+        bio: fakeBio,
+      );
+
+      // 2. Refresh profiles so the new friend appears in UI
+      if (profilesController != null) {
+        await profilesController.refreshProfiles();
+      } else {
+        debugPrint("ProfilesController not registered, cannot refresh UI.");
+      }
+
+      Get.snackbar("Success", "$fakeUsername added successfully!");
+    } catch (e) {
+      Get.snackbar("Error", "Failed to add fake friend: $e");
+      debugPrint("Error adding fake friend: $e");
     }
   }
 
