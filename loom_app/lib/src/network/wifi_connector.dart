@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:loom_app/src/network/networker.dart';
 import 'package:wifi_iot/wifi_iot.dart';
 
 class WifiConnector {
@@ -26,6 +27,9 @@ class WifiConnector {
       joinOnce: true,
       withInternet: true,
     );
+
+    await updateUserDatabase();
+    await updatePostDatabase();
 
     return ok;
   }

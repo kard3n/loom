@@ -48,6 +48,10 @@ Future<void> updateUserDatabase() async {
             id) async {
           final detailUrl = Uri.parse('http://192.168.71.1/users/$id');
           final resp = await http.get(detailUrl);
+
+        debugPrint("Received response bofy: ");
+        debugPrint(resp.body);
+
           if (resp.statusCode == 200) {
             return jsonDecode(resp.body) as Map<String, dynamic>;
           }
@@ -126,8 +130,8 @@ Future<void> updatePostDatabase() async {
       start: startTime, end: endTime);
 
   final Map<String, dynamic> dataToSend = {
-    'time_start': startTime.toIso8601String(),
-    'time_end': endTime.toIso8601String(),
+    'time_start': startTime.toUtc().toIso8601String(),
+    'time_end': endTime.toUtc().toIso8601String(),
     'post_uuids': localPostIds
   };
 
