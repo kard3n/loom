@@ -290,16 +290,26 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
   }
 }
 
-// ... (Keep existing _HomeHeader, _StoriesSection, _TopicsSection, _PostStat, _initial)
+// 2. CONVERT _HomeHeader TO STATEFULWIDGET
+class _HomeHeader extends StatefulWidget {
+  const _HomeHeader({
+    super.key,
+    required this.greeting,
+    required this.subtitle,
+  });
 
-class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.greeting, required this.subtitle});
   final String greeting;
   final String subtitle;
 
   @override
+  State<_HomeHeader> createState() => _HomeHeaderState();
+}
+
+class _HomeHeaderState extends State<_HomeHeader> {
+  @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
       child: Row(
@@ -329,7 +339,7 @@ class _HomeHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  greeting,
+                  widget.greeting,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -338,7 +348,7 @@ class _HomeHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  subtitle,
+                  widget.subtitle,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -347,9 +357,10 @@ class _HomeHeader extends StatelessWidget {
             ),
           ),
           IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded)),
+          // 3. ATTACH THE SCANNER FUNCTION TO THE ICON BUTTON
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.qr_code_scanner_rounded),
+            icon: const Icon(Icons.qr_code_scanner_rounded)
           ),
         ],
       ),
