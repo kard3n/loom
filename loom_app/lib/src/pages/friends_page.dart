@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/profile.dart';
 import 'package:loom_app/src/pages/direct_messages_page.dart';
-import 'package:loom_app/src/pages/profile_page.dart';
+import 'package:loom_app/src/pages/friend_profile_page.dart';
 
 class FriendsPage extends GetView<ProfilesController> {
   const FriendsPage({super.key});
@@ -148,8 +148,8 @@ class FriendsPage extends GetView<ProfilesController> {
 
   void _openProfile(BuildContext context, Profile friend) {
     Navigator.of(context).push(
-      MaterialPageRoute<ProfilePage>(
-        builder: (BuildContext _) => ProfilePage(friendName: friend.name),
+      MaterialPageRoute<FriendProfilePage>(
+        builder: (BuildContext _) => FriendProfilePage(friendName: friend.name),
       ),
     );
   }
