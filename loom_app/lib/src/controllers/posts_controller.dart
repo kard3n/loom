@@ -147,7 +147,7 @@ class PostsController extends GetxController {
     required String status,
     required String bio
   }) async {
-    final dbPath = await _getDatabasePath();
+    final dbPath = _getDatabasePath();
     final db = rust.AppDatabase(path: dbPath);
 
     await db.createUser(
@@ -179,7 +179,7 @@ class PostsController extends GetxController {
 
   Future<void> loadPosts() async {
     try {
-      final dbPath = await _getDatabasePath();
+      final dbPath = _getDatabasePath();
       final database = rust.AppDatabase(path: dbPath);
       final rustPosts = await database.getAllPosts();
 
@@ -197,7 +197,7 @@ class PostsController extends GetxController {
     }
 
     try {
-      final dbPath = await _getDatabasePath();
+      final dbPath = _getDatabasePath();
       final db = rust.AppDatabase(path: dbPath);
       final sourceTotemId = await _resolveSourceTotemId(db);
 
