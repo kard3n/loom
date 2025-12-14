@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct User{
     pub uuid: String,
     pub username: String,
@@ -12,8 +12,7 @@ pub struct User{
     pub last_contact: DateTime<Utc>,
 }
 
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Post{
     pub uuid: String,
     pub user_id: String,
@@ -24,6 +23,7 @@ pub struct Post{
     pub source_totem: Option<String>
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Totem{
     pub uuid: String,
     pub name: String,

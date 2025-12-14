@@ -8,7 +8,7 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 flutter_rust_bridge = { version = "=2.11.1", features = ["chrono"] }
-shared = {path = "../../shared"}
+shared = { path = "../../shared", features = ["sqlite"] }
 chrono = "0.4.42"
 anyhow = "1.0.75"
 
