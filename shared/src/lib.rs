@@ -1,5 +1,7 @@
 pub mod model;
+#[cfg(feature = "sqlite")]
 pub mod db;
+pub mod fbdb;
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
