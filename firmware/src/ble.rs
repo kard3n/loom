@@ -204,6 +204,7 @@ impl TotemServer {
             include_txpower: true,
             flag: 2,
             service_uuid: Some(BtUuid::uuid128(SERVICE_UUID)),
+            manufacturer_data: Some(b"totem"),
             ..Default::default()
         })
     }

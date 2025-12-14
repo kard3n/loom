@@ -4,7 +4,11 @@ target = "riscv32imc-esp-espidf"
 [target.riscv32imc-esp-espidf]
 linker = "ldproxy"
 runner = "espflash flash --monitor"
-rustflags = [ "--cfg",  "espidf_time64"]
+rustflags = [ "--cfg",  "espidf_time64",
+    "-C", "link-arg=-Wl,--no-eh-frame-hdr",
+    "-C", "force-unwind-tables=no",
+
+]
 
 [unstable]
 build-std = ["std", "panic_abort"]
@@ -13,4 +17,13 @@ build-std = ["std", "panic_abort"]
 MCU="esp32c3"
 # Note: this variable is not used by the pio builder (`cargo build --features pio`)
 ESP_IDF_VERSION = "v5.3.3"
+# SQLite's unix VFS includes `<sys/ioctl.h>`, which is missing from the ESP32
+# newlib headers. Provide a small shim header via GCC's `CPATH`.
+# CPATH = { value = "c_shims", relative = true, force = true }
+# LIBSQLITE3_FLAGS = { value = "-UHAVE_IOCTL_H -UHAVE_MMAN_H -DSQLITE_OMIT_MMAP -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_TEMP_STORE=3 -DSQLITE_DEFAULT_MEMSTATUS=0 -DSQLITE_DQS=0" }
+# LIBSQLITE3_FLAGS = { value = "-DHAVE_SYS_IOCTL_H=0 -DHAVE_IOCTL_H=0 -DHAVE_MMAN_H=0 -DSQLITE_OMIT_MMAP -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_TEMP_STORE=3 -DSQLITE_DEFAULT_MEMSTATUS=0 -DSQLITE_DQS=0" }
+# LIBSQLITE3_FLAGS = { value = "-UHAVE_SYS_IOCTL_H -UHAVE_IOCTL_H -UHAVE_MMAN_H -USQLITE_ENABLE_LOCKING_STYLE -DSQLITE_OMIT_MMAP -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_TEMP_STORE=3 -DSQLITE_DEFAULT_MEMSTATUS=0 -DSQLITE_DQS=0" }
+LIBSQLITE3_FLAGS = { value = "-UHAVE_SYS_IOCTL_H-UHAVE_IOCTL_H -UHAVE_SYS_MMAN_H -UHAVE_MMAN_H -USQLITE_ENABLE_LOCKING_STYLE -DSQLITE_OS_OTHER=1 -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_SHARED_CACHE -DSQLITE_OMIT_WAL -DSQLITE_OMIT_DEPRECATED -DSQLITE_OMIT_AUTOINIT -DSQLITE_OMIT_PROGRESS_CALLBACK -DSQLITE_OMIT_MMAP -DSQLITE_DEFAULT_MEMSTATUS=0 -DSQLITE_TEMP_STORE=3 -DSQLITE_DQS=0" }
+
+
 

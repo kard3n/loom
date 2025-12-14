@@ -3,7 +3,7 @@ use shared::fbdb::FileBasedDB;
 use shared::model::User;
 
 /// Exchanges data with a remote device
-fn exchange_users(
+pub fn exchange_users(
     remote_known_user_ids: Vec<String>,
     fbdb: &mut FileBasedDB,
 ) -> anyhow::Result<(Vec<String>, Vec<String>)> {
@@ -29,7 +29,7 @@ fn exchange_users(
     Ok((users_not_known_to_local, users_not_known_to_remote))
 }
 
-fn exchange_posts(
+pub fn exchange_posts(
     start_date: &DateTime<Utc>,
     end_date: &DateTime<Utc>,
     remote_known_post_ids: Vec<String>,
@@ -38,7 +38,7 @@ fn exchange_posts(
     // Synchronize posts
     let known_posts_local = fbdb.read_posts_filter_map(
         100,
-        |p| start_date <= &p.timestamp && &p.timestamp <= end_date,
+        |p| true,// |p| start_date >= &p.timestamp && &p.timestamp >= end_date,
         |p| p.uuid,
     )?; //db.get_post_ids_in_range();
 

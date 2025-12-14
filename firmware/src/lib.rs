@@ -1,2 +1,2 @@
 pub mod util;
-mod data_exchange;
+pub mod data_exchange;

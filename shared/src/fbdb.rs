@@ -25,11 +25,14 @@ impl FileBasedDB {
 
     /// Write a single user to the database
     pub fn write_user(&self, user: &User) -> io::Result<()> {
-        self.write_users(&[user])
+        self.write_users([user])
     }
 
     /// Write multiple users to the database
-    pub fn write_users(&self, users: &[&User]) -> io::Result<()> {
+    pub fn write_users<'a, I>(&self, users: I) -> io::Result<()>
+    where
+        I: IntoIterator<Item = &'a User>,
+    {
         let path = self.get_file_path("users.bin");
         let file = OpenOptions::new()
             .create(true)
@@ -57,11 +60,14 @@ impl FileBasedDB {
 
     /// Write a single post to the database
     pub fn write_post(&self, post: &Post) -> io::Result<()> {
-        self.write_posts(&[post])
+        self.write_posts([post])
     }
 
     /// Write multiple posts to the database
-    pub fn write_posts(&self, posts: &[&Post]) -> io::Result<()> {
+    pub fn write_posts<'a, I>(&self, posts: I) -> io::Result<()>
+    where
+        I: IntoIterator<Item = &'a Post>,
+    {
         let path = self.get_file_path("posts.bin");
         let file = OpenOptions::new()
             .create(true)
@@ -89,11 +95,14 @@ impl FileBasedDB {
 
     /// Write a single totem to the database
     pub fn write_totem(&self, totem: &Totem) -> io::Result<()> {
-        self.write_totems(&[totem])
+        self.write_totems([totem])
     }
 
     /// Write multiple totems to the database
-    pub fn write_totems(&self, totems: &[&Totem]) -> io::Result<()> {
+    pub fn write_totems<'a, I>(&self, totems: I) -> io::Result<()>
+    where
+        I: IntoIterator<Item = &'a Totem>,
+    {
         let path = self.get_file_path("totems.bin");
         let file = OpenOptions::new()
             .create(true)
@@ -366,7 +375,7 @@ mod tests {
             source_totem: None,
         };
 
-        db.write_posts(&[&post1, &post2]).unwrap();
+        db.write_posts([&post1, &post2]).unwrap();
 
         let posts = db.read_posts(10).unwrap();
         assert_eq!(posts.len(), 2);
@@ -525,7 +534,7 @@ mod tests {
             source_totem: Some("totem1".to_string()),
         };
 
-        db.write_posts(&[&post1, &post2, &post3]).unwrap();
+        db.write_posts([&post1, &post2, &post3]).unwrap();
 
         // Test filter and map: get titles of posts with images
         let titles_with_images: Vec<String> = db.read_posts_filter_map(

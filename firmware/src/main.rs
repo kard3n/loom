@@ -2,13 +2,13 @@ mod ble;
 mod wifi;
 mod util;
 
+use std::ffi::{CStr, CString};
 use ble::TotemBleConfig;
 use esp_idf_hal::gpio::{AnyIOPin, AnyInputPin, AnyOutputPin, IOPin};
 use esp_idf_hal::prelude::*;
 use esp_idf_hal::sd::spi::SdSpiHostDriver;
 use esp_idf_hal::sd::{SdCardConfiguration, SdCardDriver};
 use esp_idf_hal::spi::{Dma, SpiDriver, SpiDriverConfig, SPI1, SPI2};
-use esp_idf_hal::sys::esp_vfs_fat_sdspi_mount;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::fs::fatfs::Fatfs;
 use esp_idf_svc::io::vfs::MountedFatfs;
@@ -17,8 +17,14 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::str::FromStr;
+use std::sync::{Arc, Mutex};
 use std::thread::{sleep, Thread};
 use std::time::Duration;
+use chrono::Utc;
+use embedded_svc::http::Method::Post;
+use shared::fbdb::FileBasedDB;
+// use shared::model::User;
 use wifi::WifiConfig;
 use crate::util::{get_chip_serial, mac_to_id_and_pass};
 
@@ -75,9 +81,46 @@ fn main() -> anyhow::Result<()> {
 
     log::info!("Hello, world!");
 
+
+
     let peripherals = Peripherals::take()?;
 
     let (wifi_modem, bt_modem) = peripherals.modem.split();
+
+
+    log::info!("Setting up sd card...");
+    let spi = peripherals.spi2;
+
+    let sclk = peripherals.pins.gpio4;
+    let serial_in = peripherals.pins.gpio5; // SDI
+    let serial_out = peripherals.pins.gpio6; // SDO
+    let cs = peripherals.pins.gpio7;
+
+    let driver = SpiDriver::new::<SPI2>(
+        spi,
+        sclk,
+        serial_out,
+        Some(serial_in),
+        &SpiDriverConfig::new().dma(Dma::Auto(4096)),
+    )?;
+    let sd_spi_host_driver = SdSpiHostDriver::new(
+        driver,
+        Some(cs),
+        None::<AnyIOPin>,
+        None::<AnyIOPin>,
+        None::<AnyIOPin>,
+        None,
+    )?;
+
+    let sd_config = SdCardConfiguration::default();
+
+    let sd_spi_driver = SdCardDriver::new_spi(sd_spi_host_driver, &sd_config)?;
+
+    let _mounted_fatfs = MountedFatfs::mount(Fatfs::new_sdcard(0, sd_spi_driver)?, "/sd", 4)?;
+
+    let fbdb = Arc::new(Mutex::new(FileBasedDB::init("/sd/fbdb")?));
+
+    log::info!("sdcard and fbdb init done.");
 
 
     log::info!("Initializing BLE...");
@@ -113,42 +156,12 @@ fn main() -> anyhow::Result<()> {
         wifi_modem,
         sys_loop.clone(),
         nvs.clone(),
+        Arc::clone(&fbdb),
     )?;
 
 
-    log::info!("Setting up sd card...");
-    let spi = peripherals.spi2;
 
-    let sclk = peripherals.pins.gpio4;
-    let serial_in = peripherals.pins.gpio5; // SDI
-    let serial_out = peripherals.pins.gpio6; // SDO
-    let cs = peripherals.pins.gpio7;
-
-    let driver = SpiDriver::new::<SPI2>(
-        spi,
-        sclk,
-        serial_out,
-        Some(serial_in),
-        &SpiDriverConfig::new().dma(Dma::Auto(4096)),
-    )?;
-    let sd_spi_host_driver = SdSpiHostDriver::new(
-        driver,
-        Some(cs),
-        None::<AnyIOPin>,
-        None::<AnyIOPin>,
-        None::<AnyIOPin>,
-        None,
-    )?;
-
-    log::info!("ckpt1");
-    let sd_config = SdCardConfiguration::default();
-    log::info!("ckpt2");
-
-    let sd_spi_driver = SdCardDriver::new_spi(sd_spi_host_driver, &sd_config)?;
-
-    let _mounted_fatfs = MountedFatfs::mount(Fatfs::new_sdcard(0, sd_spi_driver)?, "/sd", 4)?;
-
-    log::info!("ckpt3");
+    /*
 
     log::info!("inited");
     // Read "/" and walk it to a depth of 2
@@ -166,8 +179,64 @@ fn main() -> anyhow::Result<()> {
 
         log::info!("File {file:?} read: {file_content}");
     }
+    */
+
+    /*
+    let db = FileBasedDB::init("/sd/fbdb")?;
+    log::info!("db posts: {:?}", db.read_posts(100));
+    log::info!("db users: {:?}", db.read_users(100));
+
+    {
+        db.write_post(&shared::model::Post {
+            uuid: "uuid1".to_string(),
+            user_id: "userid1".to_string(),
+            title: "title".to_string(),
+            body: "body".to_string(),
+            timestamp: Default::default(),
+            image: None,
+            source_totem: None,
+        })?;
+    }
 
 
+    log::info!("db uuid2 filtered posts: {:?}", db.read_posts_match(100, |p| p.uuid == "uuid2"));
+
+
+    {
+        db.write_post(&shared::model::Post {
+            uuid: "uuid2".to_string(),
+            user_id: "userid2".to_string(),
+            title: "title2".to_string(),
+            body: "body2".to_string(),
+            timestamp: Default::default(),
+            image: None,
+            source_totem: None,
+        })?;
+    }
+
+
+
+    log::info!("db posts: {:?}", db.read_posts(100));
+
+
+    // let db = open(CString::from_str("/sd/db_dev.sqlite").unwrap().as_ptr())?;
+
+    // let user = db.get_user_by_id("testid");
+    // log::info!("user: {user:?}");
+    // log::info!("creating user...");
+
+    // let user = User {
+    //     uuid: String::from("testid"),
+    //     username: String::from("yandrik"),
+    //     status: String::from("i eat sand"),
+    //     bio: String::from("sand eating is great"),
+    //     profile_picture: Some(String::from("123e4567-e89b-12d3-a456-426655440000")),
+    //     last_contact: Utc::now(),
+    // };
+
+    //  db.create_user(&user);
+
+     */
 
     loop {
         sleep(Duration::from_millis(1000));
