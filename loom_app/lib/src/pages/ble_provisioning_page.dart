@@ -10,7 +10,8 @@ class BleProvisioningPage extends StatefulWidget {
 }
 
 class _BleProvisioningPageState extends State<BleProvisioningPage> {
-  final BleProvisioningController controller = Get.find<BleProvisioningController>();
+  final BleProvisioningController controller =
+      Get.find<BleProvisioningController>();
 
   final TextEditingController ssidCtrl = TextEditingController();
   final TextEditingController pskCtrl = TextEditingController();
@@ -69,6 +70,8 @@ class _BleProvisioningPageState extends State<BleProvisioningPage> {
       body: Obx(() {
         final phase = controller.phase.value;
         final deviceId = controller.connectedDeviceId.value;
+        final wifiConnected = controller.wifiConnected.value;
+        final wifiRetryActive = controller.wifiRetryActive.value;
 
         return ListView(
           physics: const BouncingScrollPhysics(),
@@ -81,12 +84,23 @@ class _BleProvisioningPageState extends State<BleProvisioningPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('Status', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                    Text(
+                      'Status',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Text('Phase: $phase'),
-                    if (deviceId != null) Text('Connected: ${controller.connectedDeviceName.value ?? deviceId}'),
-                    if ((controller.totemName.value ?? '').isNotEmpty || (controller.totemId.value ?? '').isNotEmpty)
-                      Text('Totem: ${controller.totemName.value ?? ''} (${controller.totemId.value ?? ''})'),
+                    if (deviceId != null)
+                      Text(
+                        'Connected: ${controller.connectedDeviceName.value ?? deviceId}',
+                      ),
+                    if ((controller.totemName.value ?? '').isNotEmpty ||
+                        (controller.totemId.value ?? '').isNotEmpty)
+                      Text(
+                        'Totem: ${controller.totemName.value ?? ''} (${controller.totemId.value ?? ''})',
+                      ),
                     if ((controller.currentWifiSsid.value ?? '').isNotEmpty)
                       Text('Current SSID: ${controller.currentWifiSsid.value}'),
                     if (controller.error.value.isNotEmpty)
@@ -94,7 +108,9 @@ class _BleProvisioningPageState extends State<BleProvisioningPage> {
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
                           controller.error.value,
-                          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.error,
+                          ),
                         ),
                       ),
                     const SizedBox(height: 12),
@@ -105,12 +121,24 @@ class _BleProvisioningPageState extends State<BleProvisioningPage> {
                         FilledButton.icon(
                           onPressed: phase == BleProvisioningPhase.scanning
                               ? controller.stopScan
-                              : () => controller.startScan(namePrefix: prefixCtrl.text.trim()),
-                          icon: Icon(phase == BleProvisioningPhase.scanning ? Icons.stop_rounded : Icons.search_rounded),
-                          label: Text(phase == BleProvisioningPhase.scanning ? 'Stop scan' : 'Scan'),
+                              : () => controller.startScan(
+                                  namePrefix: prefixCtrl.text.trim(),
+                                ),
+                          icon: Icon(
+                            phase == BleProvisioningPhase.scanning
+                                ? Icons.stop_rounded
+                                : Icons.search_rounded,
+                          ),
+                          label: Text(
+                            phase == BleProvisioningPhase.scanning
+                                ? 'Stop scan'
+                                : 'Scan',
+                          ),
                         ),
                         OutlinedButton.icon(
-                          onPressed: deviceId == null ? null : controller.disconnect,
+                          onPressed: deviceId == null
+                              ? null
+                              : controller.disconnect,
                           icon: const Icon(Icons.link_off_rounded),
                           label: const Text('Disconnect'),
                         ),
@@ -138,7 +166,12 @@ class _BleProvisioningPageState extends State<BleProvisioningPage> {
               ),
             ),
             const SizedBox(height: 12),
-            Text('Devices', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            Text(
+              'Devices',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 8),
             ...controller.devices.map(
               (d) => Card(
@@ -153,30 +186,70 @@ class _BleProvisioningPageState extends State<BleProvisioningPage> {
               ),
             ),
             const SizedBox(height: 12),
-            Text('Wi‑Fi credentials', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            Text(
+              'Wi‑Fi credentials',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: ssidCtrl,
-              decoration: const InputDecoration(labelText: 'SSID', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'SSID',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: pskCtrl,
-              decoration: const InputDecoration(labelText: 'Password / PSK', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Password / PSK',
+                border: OutlineInputBorder(),
+              ),
               obscureText: true,
             ),
             const SizedBox(height: 12),
             FilledButton(
               onPressed: deviceId == null
                   ? null
-                  : () => controller.provision(
+                  : wifiConnected
+                  ? null
+                  : wifiRetryActive
+                  ? () => controller.stopWifiConnectRetry(disconnectWifi: false)
+                  : () async {
+                      final ok = await controller.provision(
                         ssid: ssidCtrl.text.trim(),
                         pass: pskCtrl.text,
-                      ),
-              child: const Text('Send provisioning request'),
+                      );
+                      if (!ok) return;
+                      await controller.startWifiConnectRetry(
+                        ssid:
+                            (controller.suggestedWifiSsid.value ??
+                                    controller.currentWifiSsid.value ??
+                                    '')
+                                .trim(),
+                        pass:
+                            controller.suggestedWifiPass.value ??
+                            controller.currentWifiPass.value ??
+                            pskCtrl.text,
+                      );
+                    },
+              child: Text(
+                wifiConnected
+                    ? 'Connected'
+                    : wifiRetryActive
+                    ? 'Stop'
+                    : 'Send provisioning request',
+              ),
             ),
             const SizedBox(height: 16),
-            Text('Log', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            Text(
+              'Log',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 8),
             Card(
               elevation: 0,
@@ -189,10 +262,12 @@ class _BleProvisioningPageState extends State<BleProvisioningPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: lines
                         .take(80)
-                        .map((l) => Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Text(l, style: theme.textTheme.bodySmall),
-                            ))
+                        .map(
+                          (l) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Text(l, style: theme.textTheme.bodySmall),
+                          ),
+                        )
                         .toList(growable: false),
                   );
                 }),
