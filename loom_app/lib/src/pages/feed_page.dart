@@ -457,6 +457,7 @@ class _PostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final postsController = Get.find<PostsController>();
     return Card(
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -548,7 +549,16 @@ class _PostCard extends StatelessWidget {
                 _PostStat(icon: Icons.favorite_border_rounded, value: post.likes),
                 _PostStat(icon: Icons.mode_comment_outlined, value: post.comments),
                 _PostStat(icon: Icons.repeat_rounded, value: post.shares),
-                IconButton(onPressed: () {}, icon: const Icon(Icons.bookmark_outline_rounded)),
+                Obx(() {
+                  final isSaved = postsController.isSaved(post.id);
+                  return IconButton(
+                    onPressed: () => postsController.toggleSaved(post.id),
+                    icon: Icon(
+                      isSaved ? Icons.bookmark_added_rounded : Icons.bookmark_outline_rounded,
+                    ),
+                    tooltip: isSaved ? 'Unsave' : 'Save',
+                  );
+                }),
               ],
             ),
           ),
