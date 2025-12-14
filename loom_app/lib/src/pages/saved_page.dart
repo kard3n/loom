@@ -69,7 +69,7 @@ class SavedPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
                                   Text(
-                                    post.text,
+                                    post.title,
                                     style: sectionTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                                   ),
                                   const SizedBox(height: 6),
