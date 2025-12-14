@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:loom_app/src/controllers/posts_controller.dart';
 import 'package:loom_app/src/controllers/profiles_controller.dart';
@@ -7,6 +8,7 @@ import 'package:loom_app/src/models/profile.dart';
 import 'package:loom_app/src/pages/friend_profile_page.dart';
 import 'package:loom_app/src/pages/profile_page.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
@@ -92,6 +94,7 @@ class FeedPage extends StatelessWidget {
           slivers: <Widget>[
             SliverToBoxAdapter(
               child: _HomeHeader(
+                key: const ValueKey('homeHeader'),
                 greeting: greeting,
                 subtitle: 'Here is what your circles are sharing today.',
               ),
@@ -306,6 +309,22 @@ class _HomeHeader extends StatefulWidget {
 }
 
 class _HomeHeaderState extends State<_HomeHeader> {
+  Future<void> _scanQrCode() async {
+    final String? value = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (BuildContext _) => const QrScannerPage(),
+      ),
+    );
+
+    if (!mounted) return;
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Scanned: $trimmed')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -359,11 +378,82 @@ class _HomeHeaderState extends State<_HomeHeader> {
           IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded)),
           // 3. ATTACH THE SCANNER FUNCTION TO THE ICON BUTTON
           IconButton(
-            onPressed: () {},
+            onPressed: _scanQrCode,
             icon: const Icon(Icons.qr_code_scanner_rounded)
           ),
         ],
       ),
+    );
+  }
+}
+
+class QrScannerPage extends StatefulWidget {
+  const QrScannerPage({super.key});
+
+  @override
+  State<QrScannerPage> createState() => _QrScannerPageState();
+}
+
+class _QrScannerPageState extends State<QrScannerPage> {
+  final MobileScannerController _controller = MobileScannerController();
+  bool _didPop = false;
+
+  bool get _isSupportedPlatform {
+    if (kIsWeb) return true;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+        return true;
+      case TargetPlatform.linux:
+      case TargetPlatform.fuchsia:
+        return false;
+    }
+  }
+
+  void _handleDetect(BarcodeCapture capture) {
+    if (_didPop) return;
+
+    for (final barcode in capture.barcodes) {
+      final rawValue = barcode.rawValue;
+      if (rawValue == null || rawValue.trim().isEmpty) continue;
+
+      _didPop = true;
+      Navigator.of(context).pop<String>(rawValue);
+      return;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Scan QR code'),
+      ),
+      body: !_isSupportedPlatform
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'QR scanning is not supported on this platform.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            )
+          : MobileScanner(
+              controller: _controller,
+              onDetect: _handleDetect,
+            ),
     );
   }
 }
