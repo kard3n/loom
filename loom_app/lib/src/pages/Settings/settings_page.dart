@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'package:flutter/material.dart';
 
 // --- Main Settings Entry (Subprogram Definition) ---
@@ -11,9 +13,14 @@ final settingsNavigationItem = _NavigationItem(
   onFabTap: () {}, // Trigger search focus
 );
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -33,7 +40,7 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
         ),
-
+        
         Expanded(
           child: ListView(
             physics: const BouncingScrollPhysics(),
