@@ -66,7 +66,7 @@ impl From<SharedPost> for Post {
             body: s.body,
             timestamp: s.timestamp,
             image: s.image,
-            source_totem: s.source_totem,
+            source_totem: s.source_totem.unwrap_or_default(),
         }
     }
 }
@@ -80,7 +80,11 @@ impl Into<SharedPost> for Post {
             body: self.body,
             timestamp: self.timestamp,
             image: self.image,
-            source_totem: self.source_totem,
+            source_totem: if self.source_totem.is_empty() {
+                None
+            } else {
+                Some(self.source_totem)
+            },
         }
     }
 }
