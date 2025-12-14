@@ -11,6 +11,7 @@ import 'package:loom_app/src/models/totem.dart';
 import 'package:loom_app/src/pages/friend_profile_page.dart';
 import 'package:loom_app/src/pages/full_screen_image_page.dart';
 import 'package:loom_app/src/pages/full_screen_post_page.dart';
+import 'package:loom_app/src/pages/ble_provisioning_page.dart';
 import 'package:loom_app/src/pages/profile_page.dart';
 import 'package:loom_app/src/pages/qr_scanner_page.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
@@ -332,26 +333,6 @@ class _HomeHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
       child: Row(
         children: <Widget>[
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: <Color>[
-                  theme.colorScheme.primary,
-                  theme.colorScheme.primaryContainer,
-                ],
-              ),
-            ),
-            child: Center(
-              child: Icon(
-                Icons.bolt_rounded,
-                color: theme.colorScheme.onPrimary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,6 +354,11 @@ class _HomeHeader extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          IconButton(
+            tooltip: 'BLE provisioning',
+            onPressed: () => Get.to(() => const BleProvisioningPage()),
+            icon: const Icon(Icons.bluetooth_rounded),
           ),
           IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded)),
           IconButton(
