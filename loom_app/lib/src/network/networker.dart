@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
@@ -42,13 +43,14 @@ Future<void> updateUserDatabase() async {
           result['client_missing'] ?? []);
 
       if (toDownload.isNotEmpty) {
-        print('Downloading ${toDownload.length} new users...');
+        debugPrint('Downloading ${toDownload.length} new users...');
         List<Future<Map<String, dynamic>>> fetchFutures = toDownload.map((
             id) async {
           final detailUrl = Uri.parse('http://192.168.71.1/users/$id');
           final resp = await http.get(detailUrl);
-          if (resp.statusCode == 200)
+          if (resp.statusCode == 200) {
             return jsonDecode(resp.body) as Map<String, dynamic>;
+          }
           throw Exception('Failed to load user $id');
         }).toList();
 
@@ -75,7 +77,7 @@ Future<void> updateUserDatabase() async {
           result['totem_missing'] ?? []);
 
       if (toUpload.isNotEmpty) {
-        print('Uploading ${toUpload.length} users to server...');
+        debugPrint('Uploading ${toUpload.length} users to server...');
 
         // Filter the local user list to find the full objects required
         final usersToPush = allUsers.where((u) => toUpload.contains(u.uuid));
@@ -100,13 +102,13 @@ Future<void> updateUserDatabase() async {
         }).toList();
 
         await Future.wait(uploadFutures);
-        print('Successfully uploaded users.');
+        debugPrint('Successfully uploaded users.');
       }
     } else {
-      print('Failed to compare users: ${response.statusCode}');
+      debugPrint('Failed to compare users: ${response.statusCode}');
     }
   } catch (e) {
-    print('Error in user sync: $e');
+    debugPrint('Error in user sync: $e');
   }
 }
 
@@ -179,7 +181,7 @@ Future<void> updatePostDatabase() async {
           result['totem_missing'] ?? []);
 
       if (toUpload.isNotEmpty) {
-        print('Uploading ${toUpload.length} posts...');
+        debugPrint('Uploading ${toUpload.length} posts...');
 
 
         final postsInRange = await Future.wait(
@@ -209,13 +211,13 @@ Future<void> updatePostDatabase() async {
         }).toList();
 
         await Future.wait(uploadFutures);
-        print('Successfully uploaded posts.');
+        debugPrint('Successfully uploaded posts.');
       }
     } else {
-      print('Failed to compare posts: ${response.statusCode}');
+      debugPrint('Failed to compare posts: ${response.statusCode}');
     }
   } catch (e) {
-    print('An error occurred: $e');
+    debugPrint('An error occurred: $e');
   }
 }
 

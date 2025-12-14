@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 // Import the PostsController to call its new method
 import 'package:loom_app/src/controllers/posts_controller.dart';
+import 'package:loom_app/src/pages/ble_provisioning_page.dart';
 
 // --- 1. Helper Class Definitions ---
 
@@ -62,7 +63,7 @@ class SettingsCategoryTile extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           // Use a subtle border for better definition
-          side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.25)), 
+          side: BorderSide(color: Theme.of(context).dividerColor.withAlpha((0.25 * 255).round())), 
         ),
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(
@@ -70,7 +71,7 @@ class SettingsCategoryTile extends StatelessWidget {
             vertical: 12,
           ),
           leading: CircleAvatar(
-            backgroundColor: accentColor.withOpacity(0.1),
+            backgroundColor: accentColor.withAlpha((0.1 * 255).round()),
             child: Icon(icon, color: accentColor),
           ),
           title: Text(
@@ -152,6 +153,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 accentColor: cs.tertiary,
                 // Using the detailed DebugSettingsPage
                 destination: const DebugSettingsPage(), 
+              ),
+              SettingsCategoryTile(
+                title: 'BLE Wi‑Fi Provisioning',
+                subtitle: 'Prototype: send SSID/PSK over BLE',
+                icon: Icons.bluetooth_rounded,
+                accentColor: cs.tertiary,
+                destination: const BleProvisioningPage(),
               ),
             ],
           ),
@@ -256,7 +264,7 @@ class GeneralSettingsPage extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         // FIX: Replaced withValues() with withOpacity()
-        side: BorderSide(color: theme.dividerColor.withOpacity(0.1)), 
+        side: BorderSide(color: theme.dividerColor.withAlpha((0.1 * 255).round())), 
       ),
       child: ListTile(
         leading: Icon(icon, color: theme.colorScheme.primary),
@@ -359,12 +367,12 @@ class PrivacySettingsPage extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         // FIX: Replaced withValues() with withOpacity()
-        side: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
+        side: BorderSide(color: theme.dividerColor.withAlpha((0.1 * 255).round())),
       ),
       child: ListTile(
         leading: CircleAvatar(
           // FIX: Replaced withValues() with withOpacity()
-          backgroundColor: color.withOpacity(0.1),
+          backgroundColor: color.withAlpha((0.1 * 255).round()),
           child: Icon(icon, color: color, size: 20),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -523,14 +531,14 @@ class DebugSettingsPage extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         // FIX: Replaced withValues() with withOpacity()
-        side: BorderSide(color: theme.dividerColor.withOpacity(0.1)), 
+        side: BorderSide(color: theme.dividerColor.withAlpha((0.1 * 255).round())), 
       ),
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             // FIX: Replaced withValues() with withOpacity()
-            color: color.withOpacity(0.1), 
+            color: color.withAlpha((0.1 * 255).round()), 
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: color, size: 22),
