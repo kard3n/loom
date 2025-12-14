@@ -307,11 +307,6 @@ class _HomeHeader extends StatefulWidget {
 
 class _HomeHeaderState extends State<_HomeHeader> {
   @override
-  State<_HomeHeader> createState() => _HomeHeaderState();
-}
-
-class _HomeHeaderState extends State<_HomeHeader> {
-  @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
 
@@ -362,7 +357,6 @@ class _HomeHeaderState extends State<_HomeHeader> {
             ),
           ),
           IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded)),
-          // 3. ATTACH THE SCANNER FUNCTION TO THE ICON BUTTON
           // 3. ATTACH THE SCANNER FUNCTION TO THE ICON BUTTON
           IconButton(
             onPressed: () {},

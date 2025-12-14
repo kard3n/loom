@@ -34,7 +34,7 @@ class ProfilesController extends GetxController {
     }
   }
 
-  Future<String> _getDatabasePath() async {
+  String _getDatabasePath() {
     final directory = Directory.current;
     return '${directory.path}/loom_app.db';
   }
