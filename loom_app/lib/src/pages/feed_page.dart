@@ -9,9 +9,11 @@ import 'package:loom_app/src/models/profile.dart';
 import 'package:loom_app/src/models/totem.dart';
 import 'package:loom_app/src/pages/friend_profile_page.dart';
 import 'package:loom_app/src/pages/full_screen_image_page.dart';
+import 'package:loom_app/src/pages/full_screen_post_page.dart';
 import 'package:loom_app/src/pages/profile_page.dart';
 import 'package:loom_app/src/pages/qr_scanner_page.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
+import 'package:loom_app/src/widgets/expandable_text.dart';
 import 'package:loom_app/src/widgets/path_image.dart';
 
 class FeedPage extends StatelessWidget {
@@ -625,15 +627,18 @@ class _PostCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       elevation: 0,
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            ListTile(
+      child: InkWell(
+        onTap: () => FullScreenPostPage.open(context, post.id),
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              ListTile(
             leading: GestureDetector(
               onTap: (authorPicture != null && authorPicture.trim().isNotEmpty)
                   ? () => FullScreenImagePage.open(context, authorPicture)
@@ -670,10 +675,29 @@ class _PostCard extends StatelessWidget {
             subtitle: Text(
               '${author?.handle ?? ''} • ${post.timeAgoLabel}'.trim(),
             ),
-            trailing: IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.more_horiz_rounded),
-            ),
+            trailing: Obx(() {
+              final bool isPinned = postsController.isPinned(post.id);
+              return PopupMenuButton<String>(
+                icon: const Icon(Icons.more_horiz_rounded),
+                onSelected: (value) {
+                  if (value == 'pin') {
+                    postsController.togglePinned(post.id);
+                    Get.snackbar(
+                      isPinned ? 'Unpinned' : 'Pinned',
+                      isPinned
+                          ? 'Post unpinned from your profile.'
+                          : 'Post pinned to your profile.',
+                    );
+                  }
+                },
+                itemBuilder: (context) => <PopupMenuEntry<String>>[
+                  PopupMenuItem<String>(
+                    value: 'pin',
+                    child: Text(isPinned ? 'Unpin' : 'Pin'),
+                  ),
+                ],
+              );
+            }),
           ),
           if (post.title.isNotEmpty && post.title != "Untitled")
             Padding(
@@ -689,7 +713,11 @@ class _PostCard extends StatelessWidget {
           if (post.text.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              child: Text(post.text, style: theme.textTheme.bodyLarge),
+              child: ExpandableText(
+                text: post.text,
+                style: theme.textTheme.bodyLarge,
+                trimLines: 5,
+              ),
             ),
           if (post.imageUrl != null)
             Padding(
@@ -749,8 +777,9 @@ class _PostCard extends StatelessWidget {
                 }),
               ],
             ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

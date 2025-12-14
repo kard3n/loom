@@ -5,6 +5,7 @@ import 'package:loom_app/src/controllers/posts_controller.dart';
 import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/post.dart';
 import 'package:loom_app/src/pages/full_screen_image_page.dart';
+import 'package:loom_app/src/pages/full_screen_post_page.dart';
 import 'package:loom_app/src/widgets/path_image.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -93,6 +94,8 @@ class _ProfilePageState extends State<ProfilePage> {
           .where((Post p) => p.authorId == (profile?.id ?? ''))
           .take(2)
           .toList(growable: false);
+
+        final pinned = postsController.pinnedPosts(includeClips: false);
 
       return Scaffold(
         body: CustomScrollView(
@@ -309,13 +312,29 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.bookmarks_outlined),
-                            title: const Text('No pinned items'),
-                            subtitle: const Text('Pins will show up here when available.'),
-                            onTap: () {},
-                          ),
+                          if (pinned.isEmpty)
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(Icons.bookmarks_outlined),
+                              title: const Text('No pinned items'),
+                              subtitle: const Text('Pins will show up here when available.'),
+                            )
+                          else
+                            ...pinned
+                                .map(
+                                  (Post post) => _PostPlaceholderTile(
+                                    title: (post.title.isNotEmpty && post.title != 'Untitled')
+                                        ? post.title
+                                        : post.text,
+                                    subtitle: '${post.timeAgoLabel} • ${post.text}'.trim(),
+                                    onTap: () => FullScreenPostPage.open(context, post.id),
+                                  ),
+                                )
+                                .expand(
+                                  (w) => <Widget>[w, const Divider(height: 1)],
+                                )
+                                .toList(growable: false)
+                                .take((pinned.length * 2) - 1),
                         ],
                       ),
                     ),
@@ -335,6 +354,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   ? recent.first.title
                                   : recent.first.text,
                               subtitle: '${recent.first.timeAgoLabel} • ${recent.first.text}'.trim(),
+                              onTap: () => FullScreenPostPage.open(context, recent.first.id),
                             ),
                             if (recent.length > 1) ...<Widget>[
                               const Divider(height: 1),
@@ -343,6 +363,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ? recent[1].title
                                     : recent[1].text,
                                 subtitle: '${recent[1].timeAgoLabel} • ${recent[1].text}'.trim(),
+                                onTap: () => FullScreenPostPage.open(context, recent[1].id),
                               ),
                             ],
                           ],
@@ -391,20 +412,29 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _PostPlaceholderTile extends StatelessWidget {
-  const _PostPlaceholderTile({required this.title, required this.subtitle});
+  const _PostPlaceholderTile({required this.title, required this.subtitle, this.onTap});
 
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.chat_bubble_outline_rounded),
-      title: Text(title),
-      subtitle: Text(subtitle),
+      title: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        subtitle,
+        maxLines: 5,
+        overflow: TextOverflow.ellipsis,
+      ),
       trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: () {},
+      onTap: onTap,
     );
   }
 }
