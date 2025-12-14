@@ -7,6 +7,7 @@ import '../controllers/posts_controller.dart';
 import '../controllers/profiles_controller.dart';
 import '../controllers/settings_controller.dart';
 import '../controllers/totems_controller.dart';
+import '../controllers/totem_proximity_controller.dart';
 
 class AppBindings extends Bindings {
   @override
@@ -19,6 +20,7 @@ class AppBindings extends Bindings {
     Get.put(SettingsController(), permanent: true);
     Get.put(ImagesController(), permanent: true);
     Get.put(BleProvisioningController(), permanent: true);
+    Get.put(TotemProximityController(), permanent: true);
 
     // Legacy page-specific controllers intentionally not registered.
     // They are replaced by ProfilesController/PostsController/TotemsController.

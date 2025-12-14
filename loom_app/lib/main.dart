@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loom_app/src/controllers/app_values_controller.dart';
 import 'package:loom_app/src/controllers/main_controller.dart';
+import 'package:loom_app/src/controllers/totem_proximity_controller.dart';
 import 'package:loom_app/src/pages/friends_page.dart';
 import 'package:loom_app/src/pages/feed_page.dart';
 import 'package:loom_app/src/pages/Settings/settings_page.dart';
@@ -429,12 +430,59 @@ class _HomeScreenBodyState extends State<_HomeScreenBody> {
         )
             .toList(growable: false),
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _items
-            .map((_NavigationItem item) => item.page)
-            .toList(growable: false),
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _selectedIndex,
+            children: _items
+                .map((_NavigationItem item) => item.page)
+                .toList(growable: false),
+          ),
+          const _TotemGlowOverlay(),
+        ],
       ),
+    );
+  }
+}
+
+class _TotemGlowOverlay extends StatelessWidget {
+  const _TotemGlowOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return GetX<TotemProximityController>(
+      builder: (controller) {
+        final state = controller.state.value;
+        if (state == TotemProximityState.none) {
+          return const SizedBox.shrink();
+        }
+
+        final Color glowColor = state == TotemProximityState.connected
+            ? Colors.green
+            : Colors.blue;
+
+        return Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            child: Container(
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    glowColor.withValues(alpha: 0.5),
+                    glowColor.withValues(alpha: 0.2),
+                    glowColor.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
