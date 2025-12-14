@@ -35,6 +35,39 @@ class TotemsController extends GetxController {
     }
   }
 
+  Future<void> upsertTotem({
+    required String id,
+    required String name,
+    String location = '',
+  }) async {
+    final trimmedId = id.trim();
+    if (trimmedId.isEmpty) return;
+
+    final trimmedName = name.trim().isEmpty ? trimmedId : name.trim();
+    final now = DateTime.now();
+
+    final dbPath = await _getDatabasePath();
+    final db = rust.AppDatabase(path: dbPath);
+
+    try {
+      await db.createTotem(
+        totem: rust.Totem(
+          uuid: trimmedId,
+          name: trimmedName,
+          location: location,
+          lastContact: now,
+        ),
+      );
+    } catch (_) {
+      // If the totem already exists, at least update last contact.
+      try {
+        await db.updateTotemLastContact(uuid: trimmedId, lastContact: now);
+      } catch (_) {}
+    }
+
+    await loadTotems();
+  }
+
   Future<String> _getDatabasePath() async {
     final directory = await getApplicationDocumentsDirectory();
     return '${directory.path}/loom_app.db';

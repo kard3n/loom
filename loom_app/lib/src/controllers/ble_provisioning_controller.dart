@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:get/get.dart';
+import 'package:loom_app/src/controllers/totems_controller.dart';
 import 'package:loom_app/src/network/ble_provisioner.dart';
 import 'package:loom_app/src/network/wifi_connector.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -19,7 +20,7 @@ enum BleProvisioningPhase {
 
 class BleProvisioningController extends GetxController {
   BleProvisioningController({BleProvisioner? provisioner})
-      : _provisioner = provisioner ?? BleProvisioner();
+    : _provisioner = provisioner ?? BleProvisioner();
 
   final BleProvisioner _provisioner;
   final WifiConnector _wifiConnector = WifiConnector();
@@ -41,11 +42,30 @@ class BleProvisioningController extends GetxController {
   final RxnString suggestedWifiPass = RxnString();
 
   final RxBool wifiConnectInProgress = false.obs;
+  final RxBool wifiConnected = false.obs;
+
+  final RxBool wifiRetryActive = false.obs;
+  int _wifiRetryEpoch = 0;
+  Timer? _wifiRetryTimer;
 
   final RxList<String> log = <String>[].obs;
 
+  bool _totemPersistedAfterWifiConnect = false;
+
   StreamSubscription<DiscoveredDevice>? _scanSub;
   StreamSubscription<ConnectionStateUpdate>? _connSub;
+
+  String? _bleProvidedWifiSsid() {
+    final ssid = (suggestedWifiSsid.value ?? currentWifiSsid.value ?? '')
+        .trim();
+    return ssid.isEmpty ? null : ssid;
+  }
+
+  bool _isAllowedWifiSsid(String ssid) {
+    final allowed = _bleProvidedWifiSsid();
+    if (allowed == null) return false;
+    return ssid.trim() == allowed;
+  }
 
   Future<void> startScan({String? namePrefix}) async {
     stopScan();
@@ -65,28 +85,26 @@ class BleProvisioningController extends GetxController {
     _append('Scanning...');
 
     _scanSub = _provisioner
-        .scan(
-          namePrefix: namePrefix,
-          verbose: true,
-          onLog: _append,
-        )
+        .scan(namePrefix: namePrefix, verbose: true, onLog: _append)
         .listen(
-      (d) {
-        final idx = devices.indexWhere((e) => e.id == d.id);
-        if (idx == -1) {
-          devices.add(d);
-          _append('SCAN: add device id=${d.id} name="${d.name}" rssi=${d.rssi}');
-        } else {
-          devices[idx] = d;
-          devices.refresh();
-        }
-      },
-      onError: (e) {
-        phase.value = BleProvisioningPhase.error;
-        error.value = e.toString();
-        _append('Scan error: $e');
-      },
-    );
+          (d) {
+            final idx = devices.indexWhere((e) => e.id == d.id);
+            if (idx == -1) {
+              devices.add(d);
+              _append(
+                'SCAN: add device id=${d.id} name="${d.name}" rssi=${d.rssi}',
+              );
+            } else {
+              devices[idx] = d;
+              devices.refresh();
+            }
+          },
+          onError: (e) {
+            phase.value = BleProvisioningPhase.error;
+            error.value = e.toString();
+            _append('Scan error: $e');
+          },
+        );
   }
 
   void stopScan() {
@@ -101,7 +119,9 @@ class BleProvisioningController extends GetxController {
   Future<bool> _ensureBleScanPermissions() async {
     if (!Platform.isAndroid) return true;
 
-    _append('BLE: requesting Android runtime permissions (location + bluetooth scan/connect)');
+    _append(
+      'BLE: requesting Android runtime permissions (location + bluetooth scan/connect)',
+    );
 
     // Android BLE scanning typically requires location permission on many devices/OS versions.
     // Android 12+ also requires BLUETOOTH_SCAN/CONNECT runtime permissions.
@@ -116,10 +136,14 @@ class BleProvisioningController extends GetxController {
         .join(', ');
     _append('BLE: permission results: $summary');
 
-    final denied = statuses.entries.where((e) => !e.value.isGranted).toList(growable: false);
+    final denied = statuses.entries
+        .where((e) => !e.value.isGranted)
+        .toList(growable: false);
     if (denied.isEmpty) return true;
 
-    final permanentlyDenied = statuses.entries.any((e) => e.value.isPermanentlyDenied);
+    final permanentlyDenied = statuses.entries.any(
+      (e) => e.value.isPermanentlyDenied,
+    );
     error.value = permanentlyDenied
         ? 'Permissions permanently denied. Enable Location/Bluetooth permissions in Settings.'
         : 'Permissions denied. Please allow Location/Bluetooth permissions.';
@@ -131,76 +155,94 @@ class BleProvisioningController extends GetxController {
     await disconnect();
     stopScan();
 
+    _totemPersistedAfterWifiConnect = false;
+
     phase.value = BleProvisioningPhase.connecting;
     error.value = '';
-    _append('Connecting to ${device.name.isEmpty ? device.id : device.name}...');
+    _append(
+      'Connecting to ${device.name.isEmpty ? device.id : device.name}...',
+    );
 
     final completer = Completer<void>();
 
-    _connSub = _provisioner.connect(device.id).listen(
-      (update) {
-        _append('CONN: state=${update.connectionState} id=${update.deviceId} failure=${update.failure}');
-        if (update.connectionState == DeviceConnectionState.connected) {
-          connectedDeviceId.value = device.id;
-          connectedDeviceName.value = device.name;
-          phase.value = BleProvisioningPhase.connected;
-          _append('Connected.');
+    _connSub = _provisioner
+        .connect(device.id)
+        .listen(
+          (update) {
+            _append(
+              'CONN: state=${update.connectionState} id=${update.deviceId} failure=${update.failure}',
+            );
+            if (update.connectionState == DeviceConnectionState.connected) {
+              connectedDeviceId.value = device.id;
+              connectedDeviceName.value = device.name;
+              phase.value = BleProvisioningPhase.connected;
+              _append('Connected.');
 
-          _provisioner.readTotemInfo(device.id).then(
-            (info) {
-              totemId.value = info['totemId'];
-              totemName.value = info['totemName'];
-              currentWifiSsid.value = info['wifiSsid'];
-              currentWifiPass.value = info['wifiPass'];
+              _provisioner
+                  .readTotemInfo(device.id)
+                  .then(
+                    (info) {
+                      totemId.value = info['totemId'];
+                      totemName.value = info['totemName'];
+                      currentWifiSsid.value = info['wifiSsid'];
+                      currentWifiPass.value = info['wifiPass'];
 
-              // Fill blanks in UI.
-              suggestedWifiSsid.value = info['wifiSsid'];
-              suggestedWifiPass.value = info['wifiPass'];
+                      // Fill blanks in UI.
+                      suggestedWifiSsid.value = info['wifiSsid'];
+                      suggestedWifiPass.value = info['wifiPass'];
 
-              _append('Totem: ${totemName.value ?? ''} (${totemId.value ?? ''})');
-              if ((currentWifiSsid.value ?? '').isNotEmpty) {
-                _append('Current Wi‑Fi SSID: ${currentWifiSsid.value}');
+                      _append(
+                        'Totem: ${totemName.value ?? ''} (${totemId.value ?? ''})',
+                      );
+                      if ((currentWifiSsid.value ?? '').isNotEmpty) {
+                        _append('Current Wi‑Fi SSID: ${currentWifiSsid.value}');
+                      }
+
+                      // Auto-connect phone to the provided Wi‑Fi.
+                      final ssid = (info['wifiSsid'] ?? '').trim();
+                      final pass = info['wifiPass'] ?? '';
+                      if (ssid.isNotEmpty) {
+                        _append(
+                          'Wi‑Fi: attempting auto-connect (ssid="$ssid", passLen=${pass.length})',
+                        );
+                        connectToWifi(ssid: ssid, pass: pass);
+                      } else {
+                        _append(
+                          'Wi‑Fi: no SSID provided by Totem; skipping auto-connect',
+                        );
+                      }
+                    },
+                    onError: (e) {
+                      _append('Read totem info failed: $e');
+                    },
+                  );
+
+              if (!completer.isCompleted) completer.complete();
+            }
+
+            if (update.connectionState == DeviceConnectionState.disconnected) {
+              _append('Disconnected.');
+              if (connectedDeviceId.value == device.id) {
+                connectedDeviceId.value = null;
+                connectedDeviceName.value = null;
               }
-
-              // Auto-connect phone to the provided Wi‑Fi.
-              final ssid = (info['wifiSsid'] ?? '').trim();
-              final pass = info['wifiPass'] ?? '';
-              if (ssid.isNotEmpty) {
-                _append('Wi‑Fi: attempting auto-connect (ssid="$ssid", passLen=${pass.length})');
-                connectToWifi(ssid: ssid, pass: pass);
-              } else {
-                _append('Wi‑Fi: no SSID provided by Totem; skipping auto-connect');
-              }
-            },
-            onError: (e) {
-              _append('Read totem info failed: $e');
-            },
-          );
-
-          if (!completer.isCompleted) completer.complete();
-        }
-
-        if (update.connectionState == DeviceConnectionState.disconnected) {
-          _append('Disconnected.');
-          if (connectedDeviceId.value == device.id) {
-            connectedDeviceId.value = null;
-            connectedDeviceName.value = null;
-          }
-          if (!completer.isCompleted) completer.complete();
-        }
-      },
-      onError: (e) {
-        phase.value = BleProvisioningPhase.error;
-        error.value = e.toString();
-        _append('Connect error: $e');
-        if (!completer.isCompleted) completer.completeError(e);
-      },
-    );
+              if (!completer.isCompleted) completer.complete();
+            }
+          },
+          onError: (e) {
+            phase.value = BleProvisioningPhase.error;
+            error.value = e.toString();
+            _append('Connect error: $e');
+            if (!completer.isCompleted) completer.completeError(e);
+          },
+        );
 
     return completer.future;
   }
 
   Future<void> disconnect() async {
+    stopWifiConnectRetry(disconnectWifi: false);
+
     await _connSub?.cancel();
     _connSub = null;
 
@@ -219,6 +261,9 @@ class BleProvisioningController extends GetxController {
     currentWifiPass.value = null;
     suggestedWifiSsid.value = null;
     suggestedWifiPass.value = null;
+
+    wifiConnected.value = false;
+    _totemPersistedAfterWifiConnect = false;
     if (phase.value != BleProvisioningPhase.scanning) {
       phase.value = BleProvisioningPhase.idle;
     }
@@ -226,19 +271,18 @@ class BleProvisioningController extends GetxController {
     _append('BLE: disconnect() done');
   }
 
-  Future<void> provision({
-    required String ssid,
-    required String pass,
-  }) async {
+  Future<bool> provision({required String ssid, required String pass}) async {
     final id = connectedDeviceId.value;
     if (id == null) {
       Get.snackbar('BLE', 'Not connected to a device');
-      return;
+      return false;
     }
 
     phase.value = BleProvisioningPhase.provisioning;
     error.value = '';
-    _append('Provisioning Wi‑Fi (ssid="${ssid.trim()}", passLen=${pass.length})...');
+    _append(
+      'Provisioning Wi‑Fi (ssid="${ssid.trim()}", passLen=${pass.length})...',
+    );
 
     try {
       await _provisioner.provisionWifi(deviceId: id, ssid: ssid, pass: pass);
@@ -246,36 +290,172 @@ class BleProvisioningController extends GetxController {
       if (phase.value == BleProvisioningPhase.provisioning) {
         phase.value = BleProvisioningPhase.connected;
       }
+      return true;
     } catch (e) {
       phase.value = BleProvisioningPhase.error;
       error.value = e.toString();
       _append('Provision error: $e');
+      return false;
     }
   }
 
-  Future<void> connectToWifi({
+  Future<bool> connectToWifi({
     required String ssid,
     required String pass,
+    bool showSnackbars = true,
+    int? retryEpoch,
   }) async {
+    final allowed = _bleProvidedWifiSsid();
+    if (allowed == null) {
+      _append(
+        'Wi-Fi: blocked connect (no BLE-provided SSID yet) requested="${ssid.trim()}"',
+      );
+      if (showSnackbars) {
+        Get.snackbar('Wi-Fi', 'No BLE-provided SSID; connect blocked');
+      }
+      return false;
+    }
+
+    if (!_isAllowedWifiSsid(ssid)) {
+      _append(
+        'Wi-Fi: blocked connect (SSID mismatch) requested="${ssid.trim()}" allowed="$allowed"',
+      );
+      if (showSnackbars) {
+        Get.snackbar('Wi-Fi', 'Connect blocked: only "$allowed" is allowed');
+      }
+      return false;
+    }
+
     if (wifiConnectInProgress.value) {
       _append('Wi‑Fi: connect already in progress; skipping');
-      return;
+      return false;
     }
 
     wifiConnectInProgress.value = true;
     try {
+      final current = await _wifiConnector.getCurrentSsid();
+      if (current != null &&
+          current.trim().isNotEmpty &&
+          current.trim() != allowed) {
+        _append(
+          'Wi-Fi: disconnecting current SSID before connect (current="$current", target="$allowed")',
+        );
+        final disconnected = await _wifiConnector.disconnectCurrent();
+        _append('Wi-Fi: disconnect result = $disconnected');
+      }
+
       final ok = await _wifiConnector.connect(ssid: ssid, password: pass);
       _append('Wi‑Fi: connect result = $ok');
       if (ok) {
-        Get.snackbar('Wi‑Fi', 'Connected to "$ssid"');
+        if (retryEpoch == null || retryEpoch == _wifiRetryEpoch) {
+          wifiConnected.value = true;
+        }
+        if (showSnackbars) {
+          Get.snackbar('Wi-Fi', 'Connected to "$ssid"');
+        }
+
+        if (!_totemPersistedAfterWifiConnect) {
+          final id = (totemId.value ?? '').trim();
+          final name = (totemName.value ?? '').trim();
+          if (id.isNotEmpty) {
+            try {
+              await Get.find<TotemsController>().upsertTotem(
+                id: id,
+                name: name,
+              );
+              _totemPersistedAfterWifiConnect = true;
+              _append('Totem: saved to database (id="$id", name="$name")');
+            } catch (e) {
+              _append('Totem: failed to save to database: $e');
+            }
+          }
+        }
       } else {
-        Get.snackbar('Wi‑Fi', 'Failed to connect to "$ssid"');
+        if (showSnackbars) {
+          Get.snackbar('Wi-Fi', 'Failed to connect to "$ssid"');
+        }
       }
+
+      return ok;
     } catch (e) {
       _append('Wi‑Fi: connect error: $e');
-      Get.snackbar('Wi‑Fi', 'Connect error: $e');
+      if (showSnackbars) {
+        Get.snackbar('Wi-Fi', 'Connect error: $e');
+      }
+      return false;
     } finally {
       wifiConnectInProgress.value = false;
+    }
+  }
+
+  Future<void> startWifiConnectRetry({
+    required String ssid,
+    required String pass,
+  }) async {
+    final trimmedSsid = ssid.trim();
+    if (trimmedSsid.isEmpty) {
+      Get.snackbar('Wi-Fi', 'SSID is empty');
+      return;
+    }
+
+    final allowed = _bleProvidedWifiSsid();
+    if (allowed == null) {
+      _append(
+        'Wi-Fi: retry blocked (no BLE-provided SSID yet) requested="$trimmedSsid"',
+      );
+      Get.snackbar('Wi-Fi', 'No BLE-provided SSID; connect blocked');
+      return;
+    }
+
+    if (!_isAllowedWifiSsid(trimmedSsid)) {
+      _append(
+        'Wi-Fi: retry blocked (SSID mismatch) requested="$trimmedSsid" allowed="$allowed"',
+      );
+      Get.snackbar('Wi-Fi', 'Connect blocked: only "$allowed" is allowed');
+      return;
+    }
+
+    // Reset and start a new retry loop.
+    stopWifiConnectRetry(disconnectWifi: false);
+
+    wifiRetryActive.value = true;
+    wifiConnected.value = false;
+    final epoch = ++_wifiRetryEpoch;
+
+    _append('Wi-Fi: retry loop started (ssid="$trimmedSsid", period=3s)');
+
+    void tick() {
+      if (!wifiRetryActive.value || _wifiRetryEpoch != epoch) return;
+      if (wifiConnected.value) {
+        _append('Wi-Fi: connected; stopping retry loop');
+        stopWifiConnectRetry(disconnectWifi: false);
+        return;
+      }
+      if (wifiConnectInProgress.value) return;
+
+      connectToWifi(
+        ssid: trimmedSsid,
+        pass: pass,
+        showSnackbars: false,
+        retryEpoch: epoch,
+      );
+    }
+
+    // Try immediately and then every 3 seconds until connected or stopped.
+    tick();
+    _wifiRetryTimer = Timer.periodic(const Duration(seconds: 3), (_) => tick());
+  }
+
+  void stopWifiConnectRetry({bool disconnectWifi = false}) {
+    wifiRetryActive.value = false;
+    _wifiRetryTimer?.cancel();
+    _wifiRetryTimer = null;
+
+    _wifiRetryEpoch++;
+    _append('Wi-Fi: retry loop stopped');
+
+    if (disconnectWifi) {
+      wifiConnected.value = false;
     }
   }
 
@@ -288,6 +468,7 @@ class BleProvisioningController extends GetxController {
 
   @override
   void onClose() {
+    stopWifiConnectRetry(disconnectWifi: false);
     _scanSub?.cancel();
     _connSub?.cancel();
     super.onClose();
