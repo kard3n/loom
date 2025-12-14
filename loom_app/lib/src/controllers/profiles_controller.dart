@@ -35,7 +35,7 @@ class ProfilesController extends GetxController {
   }
 
   Future<String> _getDatabasePath() async {
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = Directory.current;
     return '${directory.path}/loom_app.db';
   }
 
