@@ -15,7 +15,7 @@ class TotemsController extends GetxController {
 
   Future<void> loadTotems() async {
     try {
-      final dbPath = await _getDatabasePath();
+      final dbPath = _getDatabasePath();
       final db = rust.AppDatabase(path: dbPath);
       final rustTotems = await db.getAllTotems();
 
@@ -36,7 +36,7 @@ class TotemsController extends GetxController {
     }
   }
 
-  Future<String> _getDatabasePath() async {
+  String _getDatabasePath() {
     final directory = Directory.current;
     return '${directory.path}/loom_app.db';
   }
