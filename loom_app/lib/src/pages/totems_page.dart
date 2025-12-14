@@ -41,7 +41,9 @@ class TotemsPage extends GetView<TotemsController> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
                 child: Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
                   child: const Padding(
                     padding: EdgeInsets.all(16),
                     child: Text('No totems available.'),
@@ -50,17 +52,22 @@ class TotemsPage extends GetView<TotemsController> {
               ),
             )
           else
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-                return Padding(
-                  padding: EdgeInsets.only(bottom: index == totems.length - 1 ? 80 : 16),
-                  child: _TotemCard(totem: totems[index]),
-                );
-              }, childCount: totems.length),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((
+                  BuildContext context,
+                  int index,
+                ) {
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: index == totems.length - 1 ? 80 : 16,
+                    ),
+                    child: _TotemCard(totem: totems[index]),
+                  );
+                }, childCount: totems.length),
+              ),
             ),
-          ),
         ],
       );
     });
@@ -155,7 +162,7 @@ class _TotemCard extends StatelessWidget {
 
             final Widget connect = ElevatedButton.icon(
               onPressed: () {
-                // TODO implement connection
+                Get.find<TotemsController>().connectToTotemWifi(totem);
               },
               icon: Icon(
                 _signalIconFor(totem.signalStrength),

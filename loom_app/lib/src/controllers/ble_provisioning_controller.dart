@@ -362,6 +362,8 @@ class BleProvisioningController extends GetxController {
               await Get.find<TotemsController>().upsertTotem(
                 id: id,
                 name: name,
+                wifiSsid: ssid,
+                wifiPassword: pass,
               );
               _totemPersistedAfterWifiConnect = true;
               _append('Totem: saved to database (id="$id", name="$name")');
