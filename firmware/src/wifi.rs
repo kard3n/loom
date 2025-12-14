@@ -24,6 +24,8 @@ use esp_idf_svc::{
 use log::info;
 
 use serde::Deserialize;
+use std::fs::{self, File, OpenOptions};
+use std::io::{BufReader, BufWriter, Read as StdRead};
 
 /// Wi-Fi channel, between 1 and 11
 /// Channel 6 is often a good default as it's commonly used and supported
@@ -50,6 +52,27 @@ struct FormData<'a> {
     first_name: &'a str,
     age: u32,
     birthplace: &'a str,
+}
+
+/// Request structure for /posts/compare endpoint
+#[derive(Deserialize)]
+struct PostsCompareRequest<'a> {
+    time_start: &'a str,  // ISO 8601 timestamp
+    time_end: &'a str,    // ISO 8601 timestamp
+    user_id: &'a str,     // UUID
+    post_uuids: Vec<&'a str>,  // List of UUIDs
+}
+
+/// Request structure for /posts endpoint
+#[derive(Deserialize)]
+struct PostsRequest<'a> {
+    posts: Vec<serde_json::Value>,  // List of post objects
+}
+
+/// Request structure for /users/last_seen endpoint
+#[derive(Deserialize)]
+struct UsersLastSeenRequest<'a> {
+    user_uuids: Vec<&'a str>,  // List of UUIDs
 }
 
 /// Initialize WiFi Access Point and HTTP server with the given configuration
@@ -93,6 +116,196 @@ pub fn init_wifi(
                 "Hello, {}-year-old {} from {}!",
                 form.age, form.first_name, form.birthplace
             )?;
+        } else {
+            resp.write_all("JSON error".as_bytes())?;
+        }
+
+        Ok(())
+    })?;
+
+    // POST /posts/compare - Compare posts in a time range for a user
+    server.fn_handler::<anyhow::Error, _>("/posts/compare", Method::Post, |mut req| {
+        let len = req.content_len().unwrap_or(0) as usize;
+
+        if len > MAX_LEN {
+            req.into_status_response(413)?
+                .write_all("Request too big".as_bytes())?;
+            return Ok(());
+        }
+
+        let mut buf = vec![0; len];
+        req.read_exact(&mut buf)?;
+        let mut resp = req.into_ok_response()?;
+
+        if let Ok(data) = serde_json::from_slice::<PostsCompareRequest>(&buf) {
+            // TODO: Implement posts comparison logic
+            // For now, just acknowledge the request
+            write!(
+                resp,
+                "TODO: Compare posts for user {} from {} to {} (count: {})",
+                data.user_id, data.time_start, data.time_end, data.post_uuids.len()
+            )?;
+        } else {
+            resp.write_all("JSON error".as_bytes())?;
+        }
+
+        Ok(())
+    })?;
+
+    // POST /posts - Receive a list of posts
+    server.fn_handler::<anyhow::Error, _>("/posts", Method::Post, |mut req| {
+        let len = req.content_len().unwrap_or(0) as usize;
+
+        if len > MAX_LEN * 10 {  // Allow larger payload for multiple posts
+            req.into_status_response(413)?
+                .write_all("Request too big".as_bytes())?;
+            return Ok(());
+        }
+
+        let mut buf = vec![0; len];
+        req.read_exact(&mut buf)?;
+        let mut resp = req.into_ok_response()?;
+
+        if let Ok(data) = serde_json::from_slice::<PostsRequest>(&buf) {
+            // TODO: Implement posts storage logic
+            // For now, just acknowledge the request
+            write!(resp, "TODO: Received {} posts", data.posts.len())?;
+        } else {
+            resp.write_all("JSON error".as_bytes())?;
+        }
+
+        Ok(())
+    })?;
+
+    // POST /pic/<filename> - Save picture to SD card with streaming
+    server.fn_handler::<anyhow::Error, _>("/pic/*", Method::Post, |mut req| {
+        // Extract filename from URI path (e.g., /pic/image.jpg -> image.jpg)
+        let uri = req.uri();
+        let filename = uri.strip_prefix("/pic/").unwrap_or("unknown.jpg");
+
+        // Sanitize filename to prevent path traversal
+        let filename = filename.replace("..", "").replace("/", "");
+        let filepath = format!("/sd/pics/{}", filename);
+
+        // Ensure pics directory exists
+        if let Err(_) = fs::create_dir_all("/sd/pics") {
+            req.into_status_response(500)?
+                .write_all("Failed to create pics directory".as_bytes())?;
+            return Ok(());
+        }
+
+        let len = req.content_len().unwrap_or(0) as usize;
+
+        // Stream the file in chunks to avoid loading entire file into RAM
+        match File::create(&filepath) {
+            Ok(file) => {
+                let mut writer = BufWriter::new(file);
+                let mut total_written = 0;
+                let chunk_size = 1024;  // 1KB chunks
+                let mut buf = vec![0u8; chunk_size];
+
+                loop {
+                    let to_read = std::cmp::min(chunk_size, len - total_written);
+                    if to_read == 0 {
+                        break;
+                    }
+
+                    match req.read(&mut buf[..to_read]) {
+                        Ok(n) if n > 0 => {
+                            writer.write_all(&buf[..n])?;
+                            total_written += n;
+                        }
+                        Ok(_) => break,  // EOF
+                        Err(e) => {
+                            info!("Error reading request: {:?}", e);
+                            break;
+                        }
+                    }
+                }
+
+                let mut resp = req.into_ok_response()?;
+                write!(resp, "Saved {} bytes to {}", total_written, filepath)?;
+            }
+            Err(e) => {
+                let mut resp = req.into_status_response(500)?;
+                write!(resp, "Failed to create file: {:?}", e)?;
+            }
+        }
+
+        Ok(())
+    })?;
+
+    // GET /pic/<filename> - Send picture from SD card with streaming
+    server.fn_handler::<anyhow::Error, _>("/pic/*", Method::Get, |req| {
+        // Extract filename from URI path
+        let uri = req.uri();
+        let filename = uri.strip_prefix("/pic/").unwrap_or("");
+
+        if filename.is_empty() {
+            req.into_status_response(400)?
+                .write_all("Filename required".as_bytes())?;
+            return Ok(());
+        }
+
+        // Sanitize filename to prevent path traversal
+        let filename = filename.replace("..", "").replace("/", "");
+        let filepath = format!("/sd/pics/{}", filename);
+
+        // Stream the file in chunks to avoid loading entire file into RAM
+        match File::open(&filepath) {
+            Ok(file) => {
+                let metadata = file.metadata()?;
+                let file_size = metadata.len();
+
+                let mut reader = BufReader::new(file);
+                let mut resp = req.into_ok_response()?;
+
+                let chunk_size = 1024;  // 1KB chunks
+                let mut buf = vec![0u8; chunk_size];
+                let mut total_sent = 0;
+
+                loop {
+                    match reader.read(&mut buf) {
+                        Ok(n) if n > 0 => {
+                            resp.write_all(&buf[..n])?;
+                            total_sent += n;
+                        }
+                        Ok(_) => break,  // EOF
+                        Err(e) => {
+                            info!("Error reading file: {:?}", e);
+                            break;
+                        }
+                    }
+                }
+
+                info!("Sent {} bytes of {}", total_sent, filepath);
+            }
+            Err(_) => {
+                req.into_status_response(404)?
+                    .write_all("File not found".as_bytes())?;
+            }
+        }
+
+        Ok(())
+    })?;
+
+    // POST /users/last_seen - Update last seen timestamps for users
+    server.fn_handler::<anyhow::Error, _>("/users/last_seen", Method::Post, |mut req| {
+        let len = req.content_len().unwrap_or(0) as usize;
+
+        if len > MAX_LEN {
+            req.into_status_response(413)?
+                .write_all("Request too big".as_bytes())?;
+            return Ok(());
+        }
+
+        let mut buf = vec![0; len];
+        req.read_exact(&mut buf)?;
+        let mut resp = req.into_ok_response()?;
+
+        if let Ok(data) = serde_json::from_slice::<UsersLastSeenRequest>(&buf) {
+            // STUB: Acknowledge the request
+            write!(resp, "STUB: Received last_seen for {} users", data.user_uuids.len())?;
         } else {
             resp.write_all("JSON error".as_bytes())?;
         }
