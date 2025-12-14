@@ -13,6 +13,7 @@ import 'package:loom_app/src/pages/full_screen_post_page.dart';
 import 'package:loom_app/src/pages/ble_provisioning_page.dart';
 import 'package:loom_app/src/pages/profile_page.dart';
 import 'package:loom_app/src/pages/qr_scanner_page.dart';
+import 'package:loom_app/src/network/networker.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
 import 'package:loom_app/src/widgets/expandable_text.dart';
 import 'package:loom_app/src/widgets/path_image.dart';
@@ -98,6 +99,13 @@ class FeedPage extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: () async {
+            try {
+              await updateUserDatabase();
+            } catch (_) {}
+            try {
+              await updatePostDatabase();
+            } catch (_) {}
+
             await Future.wait(<Future<void>>[
               profilesController.refreshProfiles(),
               postsController.loadPosts(),

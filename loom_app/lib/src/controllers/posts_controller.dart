@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/post.dart';
+import 'package:loom_app/src/network/networker.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -51,12 +52,12 @@ class PostsController extends GetxController {
         .toList(growable: false);
   }
 
-        List<Post> pinnedPosts({bool includeClips = false}) {
-          final ids = pinnedPostIds;
-          return posts
-          .where((p) => (includeClips || !p.isClip) && ids.contains(p.id))
-          .toList(growable: false);
-        }
+  List<Post> pinnedPosts({bool includeClips = false}) {
+    final ids = pinnedPostIds;
+    return posts
+        .where((p) => (includeClips || !p.isClip) && ids.contains(p.id))
+        .toList(growable: false);
+  }
 
   @override
   void onInit() {
@@ -94,7 +95,11 @@ class PostsController extends GetxController {
   }
 
   /// Shows a dialog asking for details, then saves the user to Rust & File.
-  void _showRegistrationDialog(BuildContext context, String newUuid, File identityFile) {
+  void _showRegistrationDialog(
+    BuildContext context,
+    String newUuid,
+    File identityFile,
+  ) {
     final nameCtrl = TextEditingController();
     final bioCtrl = TextEditingController();
     final statusCtrl = TextEditingController();
@@ -108,21 +113,32 @@ class PostsController extends GetxController {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("It looks like you are new. Please create your profile."),
+              const Text(
+                "It looks like you are new. Please create your profile.",
+              ),
               const SizedBox(height: 20),
               TextField(
                 controller: nameCtrl,
-                decoration: const InputDecoration(labelText: "Username", border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: "Username",
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: statusCtrl,
-                decoration: const InputDecoration(labelText: "Status (e.g. Online)", border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: "Status (e.g. Online)",
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: bioCtrl,
-                decoration: const InputDecoration(labelText: "Bio", border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: "Bio",
+                  border: OutlineInputBorder(),
+                ),
                 maxLines: 2,
               ),
             ],
@@ -167,20 +183,20 @@ class PostsController extends GetxController {
     required String uuid,
     required String username,
     required String status,
-    required String bio
+    required String bio,
   }) async {
     final dbPath = await _getDatabasePath();
     final db = rust.AppDatabase(path: dbPath);
 
     await db.createUser(
-        user: rust.User(
-          uuid: uuid,
-          username: username,
-          status: status,
-          bio: bio,
-          lastContact: DateTime.now().toUtc(),
-          profilePicture: null,
-        )
+      user: rust.User(
+        uuid: uuid,
+        username: username,
+        status: status,
+        bio: bio,
+        lastContact: DateTime.now().toUtc(),
+        profilePicture: null,
+      ),
     );
   }
 
@@ -205,7 +221,9 @@ class PostsController extends GetxController {
       final database = rust.AppDatabase(path: dbPath);
       final rustPosts = await database.getAllPosts();
 
-      posts.assignAll(rustPosts.map((p) => p.toFlutterPost()).toList().reversed.toList());
+      posts.assignAll(
+        rustPosts.map((p) => p.toFlutterPost()).toList().reversed.toList(),
+      );
     } catch (e) {
       debugPrint("Error loading posts: $e");
     }
@@ -234,6 +252,14 @@ class PostsController extends GetxController {
       );
 
       await db.createPost(post: newPost);
+
+      try {
+        await updateUserDatabase();
+        await updatePostDatabase();
+      } catch (e) {
+        debugPrint("Error syncing after post create: $e");
+      }
+
       await loadPosts();
 
       Get.snackbar("Success", "Post created successfully!");
