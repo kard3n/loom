@@ -221,6 +221,44 @@ class PostsController extends GetxController {
     }
   }
 
+  // 👇 ADDED METHOD: Logic to add a fake friend
+  /// A debug utility to quickly add a test user (fake friend) to the database.
+  Future<void> addFakeFriend() async {
+    // Determine the next friend number for a unique name
+    final profilesController = Get.isRegistered<ProfilesController>()
+        ? Get.find<ProfilesController>()
+        : null;
+
+    // Use the current number of profiles + 1 for unique numbering
+    final friendNumber = (profilesController?.profiles.length ?? 0) + 1;
+    final fakeUuid = const Uuid().v4();
+    final fakeUsername = 'Mock Friend $friendNumber';
+    final fakeStatus = 'Testing Features';
+    final fakeBio = 'This is a test profile created in debug mode.';
+
+    try {
+      // 1. Create User in Rust DB using the existing helper method
+      await _registerUserInDb(
+        uuid: fakeUuid,
+        username: fakeUsername,
+        status: fakeStatus,
+        bio: fakeBio,
+      );
+
+      // 2. Refresh profiles so the new friend appears in UI
+      if (profilesController != null) {
+        await profilesController.refreshProfiles();
+      } else {
+        debugPrint("ProfilesController not registered, cannot refresh UI.");
+      }
+
+      Get.snackbar("Success", "$fakeUsername added successfully!");
+    } catch (e) {
+      Get.snackbar("Error", "Failed to add fake friend: $e");
+      debugPrint("Error adding fake friend: $e");
+    }
+  }
+
   // ... (Trending Tags and Clips helpers remain the same)
   List<String> trendingTags({int limit = 8}) {
     final counts = <String, int>{};
