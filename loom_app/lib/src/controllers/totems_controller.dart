@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:get/get.dart';
 import 'package:loom_app/src/models/totem.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
@@ -15,7 +14,7 @@ class TotemsController extends GetxController {
 
   Future<void> loadTotems() async {
     try {
-      final dbPath = _getDatabasePath();
+      final dbPath = await _getDatabasePath();
       final db = rust.AppDatabase(path: dbPath);
       final rustTotems = await db.getAllTotems();
 
@@ -36,8 +35,8 @@ class TotemsController extends GetxController {
     }
   }
 
-  String _getDatabasePath() {
-    final directory = Directory.current;
+  Future<String> _getDatabasePath() async {
+    final directory = await getApplicationDocumentsDirectory();
     return '${directory.path}/loom_app.db';
   }
 }

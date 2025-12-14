@@ -47,7 +47,7 @@ class PostsController extends GetxController {
   /// If not, it triggers the registration flow.
   Future<void> checkUserIdentity() async {
     try {
-      final dir = Directory.current;
+      final dir = await getApplicationDocumentsDirectory();
       final file = File("${dir.path}/user_identity.txt");
 
       if (await file.exists()) {
@@ -147,7 +147,7 @@ class PostsController extends GetxController {
     required String status,
     required String bio
   }) async {
-    final dbPath = _getDatabasePath();
+    final dbPath = await _getDatabasePath();
     final db = rust.AppDatabase(path: dbPath);
 
     await db.createUser(
@@ -172,14 +172,14 @@ class PostsController extends GetxController {
     }
   }
 
-  String _getDatabasePath() {
-    final directory = Directory.current;
+  Future<String> _getDatabasePath() async {
+    final directory = await getApplicationDocumentsDirectory();
     return "${directory.path}/loom_app.db";
   }
 
   Future<void> loadPosts() async {
     try {
-      final dbPath = _getDatabasePath();
+      final dbPath = await _getDatabasePath();
       final database = rust.AppDatabase(path: dbPath);
       final rustPosts = await database.getAllPosts();
 
@@ -197,7 +197,7 @@ class PostsController extends GetxController {
     }
 
     try {
-      final dbPath = _getDatabasePath();
+      final dbPath = await _getDatabasePath();
       final db = rust.AppDatabase(path: dbPath);
       final sourceTotemId = await _resolveSourceTotemId(db);
 
