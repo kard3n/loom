@@ -1,9 +1,7 @@
 use crate::model::{Post, Totem, User};
 use chrono::{DateTime, Utc};
-use rusqlite::types::FromSqlError;
-use rusqlite::{Connection, Error, Row, params};
+use rusqlite::{Connection, params};
 use std::string::String;
-use rusqlite::fallible_iterator::FallibleIterator;
 
 pub struct Database {
     connection: Connection,
