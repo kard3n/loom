@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/post.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
 import 'package:path_provider/path_provider.dart';
@@ -30,7 +31,7 @@ class PostsController extends GetxController {
         // A. User exists: Read UUID and set state
         final storedUuid = await file.readAsString();
         currentUserId.value = storedUuid.trim();
-        print("Logged in as: $storedUuid");
+        debugPrint("Logged in as: $storedUuid");
       } else {
         // B. New User: Generate UUID and show Dialog
         final newUuid = const Uuid().v4();
@@ -43,7 +44,7 @@ class PostsController extends GetxController {
         }
       }
     } catch (e) {
-      print("Error checking identity: $e");
+      debugPrint("Error checking identity: $e");
     }
   }
 
@@ -100,6 +101,12 @@ class PostsController extends GetxController {
                 // 3. Update State
                 currentUserId.value = newUuid;
 
+                // 4. Refresh profiles so the current user appears in UI
+                try {
+                  Get.find<ProfilesController>().refreshProfiles();
+                } catch (_) {}
+
+                if (!ctx.mounted) return;
                 Navigator.pop(ctx); // Close Dialog
                 loadPosts(); // Reload to reflect changes
               }
@@ -118,7 +125,7 @@ class PostsController extends GetxController {
     required String bio
   }) async {
     final dbPath = await _getDatabasePath();
-    final db = await rust.AppDatabase(path: dbPath);
+    final db = rust.AppDatabase(path: dbPath);
 
     await db.createUser(
         user: rust.User(
@@ -130,18 +137,16 @@ class PostsController extends GetxController {
           profilePicture: null,
         )
     );
+  }
 
-    // Also ensure the default Totem exists
+  Future<String> _resolveSourceTotemId(rust.AppDatabase db) async {
     try {
-      await db.createTotem(
-        totem: rust.Totem(
-          uuid: "mobile_app",
-          name: "My Phone",
-          location: "Here",
-          lastContact: DateTime.now().toUtc(),
-        ),
-      );
-    } catch (_) {}
+      final totems = await db.getAllTotems();
+      if (totems.isEmpty) return '';
+      return totems.first.uuid;
+    } catch (_) {
+      return '';
+    }
   }
 
   String _getDatabasePath() {
@@ -151,13 +156,13 @@ class PostsController extends GetxController {
 
   Future<void> loadPosts() async {
     try {
-      final dbPath = _getDatabasePath();
-      final database = await rust.AppDatabase(path: dbPath);
+      final dbPath = await _getDatabasePath();
+      final database = rust.AppDatabase(path: dbPath);
       final rustPosts = await database.getAllPosts();
 
       posts.assignAll(rustPosts.map((p) => p.toFlutterPost()).toList().reversed.toList());
     } catch (e) {
-      print("Error loading posts: $e");
+      debugPrint("Error loading posts: $e");
     }
   }
 
@@ -169,24 +174,27 @@ class PostsController extends GetxController {
     }
 
     try {
+      final dbPath = await _getDatabasePath();
+      final db = rust.AppDatabase(path: dbPath);
+      final sourceTotemId = await _resolveSourceTotemId(db);
+
       final newPost = rust.Post(
         uuid: const Uuid().v4(),
-        userId: currentUserId.value, // Use the dynamic ID
-        title: title.isEmpty ? "Untitled" : title,
+        userId: currentUserId.value,
+        title: title,
         body: body,
         timestamp: DateTime.now().toUtc(),
-        sourceTotem: "mobile_app",
+        sourceTotem: sourceTotemId,
         image: null,
       );
 
-      final dbPath = await _getDatabasePath();
-      await rust.AppDatabase(path: dbPath).createPost(post: newPost);
+      await db.createPost(post: newPost);
       await loadPosts();
 
       Get.snackbar("Success", "Post created successfully!");
     } catch (e) {
       Get.snackbar("Error", "Failed to create post: $e");
-      print(e);
+      debugPrint(e.toString());
     }
   }
 

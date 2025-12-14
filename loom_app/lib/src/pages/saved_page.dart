@@ -21,7 +21,7 @@ class SavedPage extends StatelessWidget {
         child: ListView.builder(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 32, 16, 96),
-          itemCount: items.length + 1,
+          itemCount: items.isEmpty ? 2 : items.length + 1,
           itemBuilder: (BuildContext context, int index) {
             if (index == 0) {
               return Padding(
@@ -43,6 +43,20 @@ class SavedPage extends StatelessWidget {
               );
             }
 
+            if (items.isEmpty) {
+              return Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'No saved posts yet.',
+                    style: sectionTheme.textTheme.bodyMedium?.copyWith(color: sectionTheme.colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              );
+            }
+
             final Post post = items[index - 1];
             final author = profilesController.byId(post.authorId);
             final tag = post.tags.isNotEmpty ? post.tags.first : 'Saved';
@@ -53,7 +67,7 @@ class SavedPage extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: sectionTheme.colorScheme.primary.withOpacity(0.06),
+                    color: sectionTheme.colorScheme.primary.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: Padding(
@@ -69,7 +83,7 @@ class SavedPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
                                   Text(
-                                    post.text,
+                                    post.title,
                                     style: sectionTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                                   ),
                                   const SizedBox(height: 6),
@@ -101,7 +115,7 @@ class SavedPage extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(horizontal: 6),
                             ),
                             Text(
-                              'Saved ${post.timeAgoLabel} ago',
+                              'Saved ${post.timeAgoLabel}',
                               style: sectionTheme.textTheme.bodySmall?.copyWith(
                                 color: sectionTheme.colorScheme.onSurfaceVariant,
                               ),

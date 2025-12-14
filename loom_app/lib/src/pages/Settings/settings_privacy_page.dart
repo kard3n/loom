@@ -7,6 +7,7 @@ class PrivacySettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -27,14 +28,14 @@ class PrivacySettingsPage extends StatelessWidget {
             title: 'Two-Factor Authentication',
             subtitle: 'Add an extra layer of security',
             icon: Icons.enhanced_encryption_rounded,
-            color: Colors.green,
+            color: cs.secondary,
           ),
           _buildPrivacyTile(
             theme,
             title: 'App Lock',
             subtitle: 'Secure app with Biometrics/PIN',
             icon: Icons.fingerprint_rounded,
-            color: Colors.blue,
+            color: cs.primary,
           ),
           const Divider(height: 32),
           _buildSectionHeader(theme, 'Data & Visibility'),
@@ -43,14 +44,14 @@ class PrivacySettingsPage extends StatelessWidget {
             title: 'Profile Visibility',
             subtitle: 'Choose who can see your profile',
             icon: Icons.visibility_off_outlined,
-            color: Colors.purple,
+            color: cs.tertiary,
           ),
           _buildPrivacyTile(
             theme,
             title: 'Blocked Contacts',
             subtitle: 'Manage 12 restricted users',
             icon: Icons.person_off_outlined,
-            color: Colors.red,
+            color: cs.error,
           ),
         ],
       ),
@@ -83,11 +84,11 @@ class PrivacySettingsPage extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
+        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.1)),
       ),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.1),
+          backgroundColor: color.withValues(alpha: 0.1),
           child: Icon(icon, color: color, size: 20),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),

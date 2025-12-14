@@ -35,6 +35,21 @@ class TotemsPage extends GetView<TotemsController> {
               nofTotems: totems.length,
             ),
           ),
+          if (totems.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+                child: Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  child: const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('No totems available.'),
+                  ),
+                ),
+              ),
+            )
+          else
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             sliver: SliverList(
@@ -76,10 +91,10 @@ class _TotemHeader extends StatelessWidget {
                 ],
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Icon(
                 Icons.signal_wifi_statusbar_4_bar,
-                color: Colors.white,
+                color: theme.colorScheme.onPrimary,
               ),
             ),
           ),
