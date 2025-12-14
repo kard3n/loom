@@ -157,11 +157,11 @@ impl Database {
             params![uuid],
             |row| {
                 Ok(Post {
-                    uuid: get_heapless(row, 0)?,
-                    user_id: get_heapless(row, 1)?,
-                    title: get_heapless(row, 2)?,
-                    body: get_heapless(row, 3)?,
-                    timestamp: row.get(4)?, // DateTime<Utc> works natively with feature
+                    uuid: row.get(0).unwrap(),
+                    user_id: row.get(1).unwrap(),
+                    title: row.get(2).unwrap(),
+                    body: row.get(3).unwrap(),
+                    timestamp: row.get(4).unwrap(), // DateTime<Utc> works natively with feature
                     image: row.get(5).unwrap(),
                     source_totem: row.get(6).unwrap(),
                 })
@@ -175,10 +175,10 @@ impl Database {
             params![uuid],
             |row| {
                 Ok(User {
-                    uuid: get_heapless(row, 0)?,
-                    username: get_heapless(row, 1)?,
-                    status: get_heapless(row, 2)?,
-                    bio: get_heapless(row, 3)?,
+                    uuid: row.get(0).unwrap(),
+                    username: row.get(1).unwrap(),
+                    status: row.get(2).unwrap(),
+                    bio: row.get(3).unwrap(),
                     profile_picture: row.get::<_, Option<String>>(4)?
                         .map(|s| s.parse().expect("Failed to parse image string")),
                     last_contact: row.get(5)?,
@@ -194,10 +194,10 @@ impl Database {
 
         let iter = stmt.query_map([], |row| {
             Ok(User {
-                uuid: get_heapless(row, 0)?,
-                username: get_heapless(row, 1)?,
-                status: get_heapless(row, 2)?,
-                bio: get_heapless(row, 3)?,
+                uuid: row.get(0).unwrap(),
+                username: row.get(1).unwrap(),
+                status: row.get(2).unwrap(),
+                bio: row.get(3).unwrap(),
                 profile_picture: row.get::<_, Option<String>>(4)?
                     .map(|s| s.parse().expect("Failed to parse image string")),
                 last_contact: row.get(5)?,
@@ -214,9 +214,9 @@ impl Database {
 
         let iter = stmt.query_map([], |row| {
             Ok(Totem {
-                uuid: get_heapless(row, 0)?,
-                name: get_heapless(row, 1)?,
-                location: get_heapless(row, 2)?,
+                uuid: row.get(0).unwrap(),
+                name: row.get(1).unwrap(),
+                location: row.get(2).unwrap(),
                 last_contact: row.get(3)?,
             })
         })?;
@@ -231,13 +231,12 @@ impl Database {
 
         let iter = stmt.query_map([], |row| {
             Ok(Post {
-                uuid: get_heapless(row, 0)?,
-                user_id: get_heapless(row, 1)?,
-                title: get_heapless(row, 2)?,
-                body: get_heapless(row, 3)?,
-                timestamp: row.get(4)?,
-                image: row.get::<_, Option<String>>(5)?
-                    .map(|s| s.parse().expect("Failed to parse image string")),
+                uuid: row.get(0).unwrap(),
+                user_id: row.get(1).unwrap(),
+                title: row.get(2).unwrap(),
+                body: row.get(3).unwrap(),
+                timestamp: row.get(4).unwrap(),
+                image: row.get(5).unwrap(),
                 source_totem: row.get(6).unwrap(),
             })
         })?;
@@ -274,11 +273,6 @@ impl Database {
         )?;
         Ok(())
     }
-}
-
-/// Helper function to fetch text from an SQL result and convert to heapless::String
-fn get_heapless(row: &Row, index: usize) -> rusqlite::Result<String> {
-    return row.get(index);
 }
 
 #[cfg(test)]
