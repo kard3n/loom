@@ -39,4 +39,43 @@ class TotemsController extends GetxController {
     final directory = await getApplicationDocumentsDirectory();
     return '${directory.path}/loom_app.db';
   }
+
+  Totem? byId(String id) {
+    for (final t in totems) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
+
+  Totem? byName(String name) {
+    for (final t in totems) {
+      if (t.name == name) return t;
+    }
+    return null;
+  }
+
+  Totem? resolveTotemFromScan(String scanned) {
+    final String raw = scanned.trim();
+    if (raw.isEmpty) return null;
+
+    // Accept raw UUID, name, or URLs that embed UUID.
+    final RegExp uuidRe = RegExp(
+      r'\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b',
+    );
+    final Match? uuidMatch = uuidRe.firstMatch(raw);
+    final String candidateId = uuidMatch?.group(0) ?? raw;
+
+    final Totem? byIdResult = byId(candidateId);
+    if (byIdResult != null) return byIdResult;
+
+    final Totem? byNameResult = byName(raw);
+    if (byNameResult != null) return byNameResult;
+
+    final String normalized = raw.toLowerCase();
+    for (final Totem t in totems) {
+      if (t.name.toLowerCase() == normalized) return t;
+    }
+
+    return null;
+  }
 }
