@@ -289,8 +289,7 @@ mod tests {
 
     #[test]
     fn test_write_read() {
-        std::fs::remove_file("test.db".to_string());
-        let db = Database::new("test.db".to_string());
+        let db = Database::new(":memory:".to_string());
 
         let user = User {
             uuid: "550e8400-e29b-41d4-a716-446655440000".try_into().unwrap(),
@@ -355,8 +354,7 @@ mod tests {
 
     #[test]
     fn test_write_read_no_totem() {
-        std::fs::remove_file("test.db".to_string());
-        let db = Database::new("test.db".to_string());
+        let db = Database::new(":memory:".to_string());
 
         let user = User {
             uuid: "550e8400-e29b-41d4-a716-446655440000".try_into().unwrap(),
