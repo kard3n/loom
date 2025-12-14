@@ -1,0 +1,253 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:nearby_service/nearby_service.dart';
+
+void main() {
+  runApp(GetMaterialApp(
+    theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.green),
+    home: const NearbyAndroidScreen(),
+  ));
+}
+
+class NearbyAndroidController extends GetxController {
+  final _nearbyService = NearbyService.getInstance();
+  
+  var peers = <NearbyDevice>[].obs;
+  var connectedDevice = Rxn<NearbyDevice>();
+  var messages = <String>[].obs;
+  var statusMessage = "Bereit".obs;
+
+  StreamSubscription? _peersSubscription;
+  StreamSubscription? _connectionSubscription;
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Startet den Prozess direkt beim Laden
+    setupAndDiscover();
+  }
+
+  Future<void> setupAndDiscover() async {
+    statusMessage.value = "Initialisiere...";
+    await _nearbyService.initialize(data: NearbyInitializeData());
+
+    // 1. Android Permissions (Standort & Nearby Devices)
+    final granted = await _nearbyService.android?.requestPermissions();
+    if (granted != true) {
+      statusMessage.value = "Berechtigungen fehlen!";
+      return;
+    }
+
+    // 2. WLAN Status prüfen
+    final isWifiEnabled = await _nearbyService.android?.checkWifiService();
+    if (isWifiEnabled != true) {
+      statusMessage.value = "Bitte WLAN einschalten";
+      await _nearbyService.android?.openServicesSettings();
+      return;
+    }
+
+Future<void> setupAndDiscover() async {
+    statusMessage.value = "Initialisiere...";
+    await _nearbyService.initialize(data: NearbyInitializeData());
+
+    // 1. & 2. Permissions und Wifi Check (gekürzt für Fokus auf Punkt 3)
+    final granted = await _nearbyService.android?.requestPermissions();
+    final isWifiEnabled = await _nearbyService.android?.checkWifiService();
+    
+    if (granted != true || isWifiEnabled != true) {
+      statusMessage.value = "Fehler: Checke Permissions/WLAN";
+      return;
+    }
+
+    // 3. Suche starten
+    statusMessage.value = "Suche nach Geräten läuft...";
+    print("DEBUG: Starte Discovery...");
+
+    final result = await _nearbyService.discover();
+    
+    if (result) {
+      // Stream abhören
+      _peersSubscription?.cancel(); // Alten Stream schließen, falls vorhanden
+      _peersSubscription = _nearbyService.getPeersStream().listen((List<NearbyDevice> foundPeers) {
+        
+        // Die Liste der gefundenen Geräte aktualisieren
+        peers.value = foundPeers;
+
+        // Konsolen-Ausgabe für dich zum Debuggen
+        print("DEBUG: ${foundPeers.length} Gerät(e) gefunden.");
+        for (var device in foundPeers) {
+          print("Gerät: ${device.info.displayName} | ID: ${device.info.id} | Status: ${device.status.name}");
+        }
+
+        // Status-Text im UI anpassen
+        if (foundPeers.isEmpty) {
+          statusMessage.value = "Suche läuft... (noch nichts gefunden)";
+        } else {
+          statusMessage.value = "${foundPeers.length} Gerät(e) in der Nähe";
+        }
+      }, onError: (error) {
+        statusMessage.value = "Fehler beim Suchen: $error";
+        print("DEBUG ERROR: $error");
+      });
+    } else {
+      statusMessage.value = "Discovery konnte nicht gestartet werden.";
+      print("DEBUG: Discovery fehlgeschlagen.");
+    }
+  }
+  }
+
+  Future<void> connect(NearbyDevice device) async {
+    statusMessage.value = "Verbinde mit ${device.info.displayName}...";
+    final result = await _nearbyService.connect(device);
+    if (result) {
+      _listenToConnection(device);
+    }
+  }
+
+  void _listenToConnection(NearbyDevice device) {
+    _connectionSubscription?.cancel();
+    _connectionSubscription = _nearbyService.getConnectedDeviceStream(device).listen(
+      (event) async {
+        connectedDevice.value = event;
+        
+        if (event?.status.isConnected ?? false) {
+          statusMessage.value = "Verbunden mit ${event!.info.displayName}";
+          _startCommunication(event);
+        } else {
+          statusMessage.value = "Verbindung verloren";
+        }
+      },
+    );
+  }
+
+  void _startCommunication(NearbyDevice device) async {
+    await _nearbyService.startCommunicationChannel(
+      NearbyCommunicationChannelData(
+        device.info.id,
+        messagesListener: NearbyServiceMessagesListener(
+          onData: (message) {
+            final content = message.content;
+            if (content is NearbyMessageTextRequest) {
+              messages.add("Partner: ${content.value}");
+              // Automatische Bestätigung
+              _nearbyService.send(OutgoingNearbyMessage(
+                content: NearbyMessageTextResponse(id: content.id),
+                receiver: message.sender,
+              ));
+            }
+          },
+        ),
+        filesListener: NearbyServiceFilesListener(
+          onData: (pack) => messages.add("Datei erhalten!"),
+        ),
+      ),
+    );
+  }
+
+  void sendText(String text) {
+    if (connectedDevice.value != null && text.isNotEmpty) {
+      _nearbyService.send(OutgoingNearbyMessage(
+        content: NearbyMessageTextRequest.create(value: text),
+        receiver: connectedDevice.value!.info,
+      ));
+      messages.add("Ich: $text");
+    }
+  }
+
+  @override
+  void onClose() {
+    _peersSubscription?.cancel();
+    _connectionSubscription?.cancel();
+    super.onClose();
+  }
+}
+
+class NearbyAndroidScreen extends StatelessWidget {
+  const NearbyAndroidScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Get.put(NearbyAndroidController());
+    final textController = TextEditingController();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Android Nearby P2P"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => controller.setupAndDiscover(),
+          )
+        ],
+      ),
+      body: Column(
+        children: [
+          // Status-Leiste
+          Obx(() => Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(8),
+            color: Colors.green.shade100,
+            child: Text(controller.statusMessage.value, textAlign: TextAlign.center),
+          )),
+
+          // Liste der gefundenen Android-Geräte
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text("Gefundene Geräte (Wi-Fi Direct):", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          Obx(() => SizedBox(
+            height: 150,
+            child: controller.peers.isEmpty
+                ? const Center(child: Text("Keine Geräte gefunden"))
+                : ListView.builder(
+                    itemCount: controller.peers.length,
+                    itemBuilder: (context, index) {
+                      final device = controller.peers[index];
+                      return ListTile(
+                        leading: const Icon(Icons.android, color: Colors.green),
+                        title: Text(device.info.displayName),
+                        subtitle: Text(device.status.name),
+                        onTap: () => controller.connect(device),
+                        trailing: const Icon(Icons.link),
+                      );
+                    },
+                  ),
+          )),
+          const Divider(),
+
+          // Nachrichten-Bereich
+          Expanded(
+            child: Obx(() => ListView.builder(
+              itemCount: controller.messages.length,
+              itemBuilder: (context, index) => Card(
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(controller.messages[index]),
+                ),
+              ),
+            )),
+          ),
+
+          // Eingabefeld
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(child: TextField(controller: textController, decoration: const InputDecoration(hintText: "Nachricht..."))),
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: () {
+                    controller.sendText(textController.text);
+                    textController.clear();
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
