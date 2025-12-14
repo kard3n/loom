@@ -1,0 +1,9 @@
+DO YOU WANT TO EAT SAND?????
+EATING SAND IS NOW FREE!!!!!!
+1. GET TO A BEACH
+2. USE YOUR SHOVEL AND BUCKET UP
+3. EAT SAND!!!!!!
+
+-> QUICK AND EASY WAY
+
+![](https://media.tenor.com/sGSCcUOJt8QAAAAM/sand-eat.gif)

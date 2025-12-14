@@ -1,0 +1,65 @@
+name: loom_app
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# ... (Versionsinformationen) ...
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+
+# Dependencies specify other packages that your package needs in order to work.
+dependencies:
+  flutter:
+    sdk: flutter
+  uuid: ^4.5.2
+  mobile_scanner: ^4.0.0
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.8
+  rust_lib_loom_app:
+    path: rust_builder
+  flutter_rust_bridge: 2.11.1
+  get: ^4.7.3
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # ... (flutter_lints und integration_test) ...
+  flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter
+
+  # Hier ist die Einrückung KORREKT (2 Leerzeichen unter dev_dependencies:)
+  flutter_launcher_icons: "^0.14.0" 
+
+# Diese Sektion MUSS ganz links stehen (keine Einrückung)
+flutter_icons: 
+  # Diese Schlüssel müssen 2 Leerzeichen unter flutter_icons: eingerückt sein
+  android: true 
+  ios: true # iOS fehlt in Ihrem Skript, aber es ist sinnvoll, es hinzuzufügen
+
+  # ACHTUNG: Der Pfad muss relativ zum Projekt-ROOT sein (nicht zum lib-Ordner)
+  # Angenommen, loom_app ist der Projekt-Root. 
+  # Der Pfad sollte so beginnen:
+  image_path: "lib/src/pictures/ChatGPT_Image_13._Dez._2025_13_11_31.png"
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # ... (der Rest des Skripts) ...
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  # assets:
+  #   - images/a_dot_burr.jpeg
+  #   - images/a_dot_ham.jpeg
+# ...
