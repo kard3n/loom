@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loom_app/src/controllers/images_controller.dart';
@@ -97,70 +96,80 @@ class FeedPage extends StatelessWidget {
         final allPosts = postsController.posts;
         final topics = postsController.trendingTags(limit: 6);
 
-        return CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: <Widget>[
-            SliverToBoxAdapter(
-              child: _HomeHeader(
-                greeting: greeting,
-                subtitle: 'Here is what your circles are sharing today.',
-              ),
+        return RefreshIndicator(
+          onRefresh: () async {
+            await Future.wait(<Future<void>>[
+              profilesController.refreshProfiles(),
+              postsController.loadPosts(),
+            ]);
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
             ),
-            SliverToBoxAdapter(child: _ProfilesSection(profiles: profiles)),
-            SliverToBoxAdapter(
-              child: _TopicsSection(
-                topics: topics,
-                title: 'Billboard',
-                seeAllLabel: 'See all',
-              ),
-            ),
-            if (allPosts.isEmpty)
+            slivers: <Widget>[
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-                  child: Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        'No posts yet.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                child: _HomeHeader(
+                  greeting: greeting,
+                  subtitle: 'Here is what your circles are sharing today.',
+                ),
+              ),
+              SliverToBoxAdapter(child: _ProfilesSection(profiles: profiles)),
+              SliverToBoxAdapter(
+                child: _TopicsSection(
+                  topics: topics,
+                  title: 'Billboard',
+                  seeAllLabel: 'See all',
+                ),
+              ),
+              if (allPosts.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+                    child: Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'No posts yet.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((
-                    BuildContext context,
-                    int index,
-                  ) {
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        bottom: index == allPosts.length - 1 ? 80 : 16,
-                      ),
-                      child: _PostCard(
-                        post: allPosts[index],
-                        author: profilesController.byId(
-                          allPosts[index].authorId,
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((
+                      BuildContext context,
+                      int index,
+                    ) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          bottom: index == allPosts.length - 1 ? 80 : 16,
                         ),
-                      ),
-                    );
-                  }, childCount: allPosts.length),
+                        child: _PostCard(
+                          post: allPosts[index],
+                          author: profilesController.byId(
+                            allPosts[index].authorId,
+                          ),
+                        ),
+                      );
+                    }, childCount: allPosts.length),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         );
       }),
     );
@@ -289,10 +298,10 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
                   Get.find<ImagesController>()
                       .pickAndStoreImage(folder: 'post_images')
                       .then((saved) {
-                    if (!mounted) return;
-                    if (saved == null) return;
-                    setState(() => _imagePath = saved);
-                  });
+                        if (!mounted) return;
+                        if (saved == null) return;
+                        setState(() => _imagePath = saved);
+                      });
                 },
                 icon: Icon(
                   Icons.image_outlined,
@@ -363,8 +372,7 @@ class _HomeHeader extends StatelessWidget {
           IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded)),
           IconButton(
             onPressed: () async {
-              final String? scanned = await Navigator.of(context)
-                  .push<String?>(
+              final String? scanned = await Navigator.of(context).push<String?>(
                 MaterialPageRoute<String?>(
                   builder: (_) => const QrScannerPage(),
                 ),
@@ -626,144 +634,157 @@ class _PostCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               ListTile(
-            leading: GestureDetector(
-              onTap: (authorPicture != null && authorPicture.trim().isNotEmpty)
-                  ? () => FullScreenImagePage.open(context, authorPicture)
-                  : null,
-              child: CircleAvatar(
-                backgroundColor: theme.colorScheme.primary.withValues(
-                  alpha: 0.12,
-                ),
-                child: (authorPicture != null && authorPicture.trim().isNotEmpty)
-                    ? ClipOval(
-                        child: SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: PathImage(
-                            path: authorPicture,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      )
-                    : Text(
-                        _initial(author?.name ?? '?'),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-              ),
-            ),
-            title: Text(
-              author?.name ?? 'Unknown',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            subtitle: Text(
-              '${author?.handle ?? ''} • ${post.timeAgoLabel}'.trim(),
-            ),
-            trailing: Obx(() {
-              final bool isPinned = postsController.isPinned(post.id);
-              return PopupMenuButton<String>(
-                icon: const Icon(Icons.more_horiz_rounded),
-                onSelected: (value) {
-                  if (value == 'pin') {
-                    postsController.togglePinned(post.id);
-                    Get.snackbar(
-                      isPinned ? 'Unpinned' : 'Pinned',
-                      isPinned
-                          ? 'Post unpinned from your profile.'
-                          : 'Post pinned to your profile.',
-                    );
-                  }
-                },
-                itemBuilder: (context) => <PopupMenuEntry<String>>[
-                  PopupMenuItem<String>(
-                    value: 'pin',
-                    child: Text(isPinned ? 'Unpin' : 'Pin'),
-                  ),
-                ],
-              );
-            }),
-          ),
-          if (post.title.isNotEmpty && post.title != "Untitled")
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(
-                post.title,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-            ),
-          if (post.text.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              child: ExpandableText(
-                text: post.text,
-                style: theme.textTheme.bodyLarge,
-                trimLines: 5,
-              ),
-            ),
-          if (post.imageUrl != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: GestureDetector(
-                onTap: () => FullScreenImagePage.open(context, post.imageUrl!),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: PathImage(path: post.imageUrl!, fit: BoxFit.cover),
-                  ),
-                ),
-              ),
-            ),
-          if (post.tags.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: post.tags
-                    .map(
-                      (String tag) => Chip(
-                        label: Text('#$tag'),
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: <Widget>[
-                _PostStat(
-                  icon: Icons.favorite_border_rounded,
-                  value: post.likes,
-                ),
-                _PostStat(
-                  icon: Icons.mode_comment_outlined,
-                  value: post.comments,
-                ),
-                _PostStat(icon: Icons.repeat_rounded, value: post.shares),
-                Obx(() {
-                  final isSaved = postsController.isSaved(post.id);
-                  return IconButton(
-                    onPressed: () => postsController.toggleSaved(post.id),
-                    icon: Icon(
-                      isSaved
-                          ? Icons.bookmark_added_rounded
-                          : Icons.bookmark_outline_rounded,
+                leading: GestureDetector(
+                  onTap:
+                      (authorPicture != null && authorPicture.trim().isNotEmpty)
+                      ? () => FullScreenImagePage.open(context, authorPicture)
+                      : null,
+                  child: CircleAvatar(
+                    backgroundColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.12,
                     ),
-                    tooltip: isSaved ? 'Unsave' : 'Save',
+                    child:
+                        (authorPicture != null &&
+                            authorPicture.trim().isNotEmpty)
+                        ? ClipOval(
+                            child: SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: PathImage(
+                                path: authorPicture,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            _initial(author?.name ?? '?'),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                  ),
+                ),
+                title: Text(
+                  author?.name ?? 'Unknown',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                subtitle: Text(
+                  '${author?.handle ?? ''} • ${post.timeAgoLabel}'.trim(),
+                ),
+                trailing: Obx(() {
+                  final bool isPinned = postsController.isPinned(post.id);
+                  return PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_horiz_rounded),
+                    onSelected: (value) {
+                      if (value == 'pin') {
+                        postsController.togglePinned(post.id);
+                        Get.snackbar(
+                          isPinned ? 'Unpinned' : 'Pinned',
+                          isPinned
+                              ? 'Post unpinned from your profile.'
+                              : 'Post pinned to your profile.',
+                        );
+                      }
+                    },
+                    itemBuilder: (context) => <PopupMenuEntry<String>>[
+                      PopupMenuItem<String>(
+                        value: 'pin',
+                        child: Text(isPinned ? 'Unpin' : 'Pin'),
+                      ),
+                    ],
                   );
                 }),
-              ],
-            ),
+              ),
+              if (post.title.isNotEmpty && post.title != "Untitled")
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: Text(
+                    post.title,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              if (post.text.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 4,
+                  ),
+                  child: ExpandableText(
+                    text: post.text,
+                    style: theme.textTheme.bodyLarge,
+                    trimLines: 5,
+                  ),
+                ),
+              if (post.imageUrl != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  child: GestureDetector(
+                    onTap: () =>
+                        FullScreenImagePage.open(context, post.imageUrl!),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: PathImage(
+                          path: post.imageUrl!,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              if (post.tags.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: post.tags
+                        .map(
+                          (String tag) => Chip(
+                            label: Text('#$tag'),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: <Widget>[
+                    _PostStat(
+                      icon: Icons.favorite_border_rounded,
+                      value: post.likes,
+                    ),
+                    _PostStat(
+                      icon: Icons.mode_comment_outlined,
+                      value: post.comments,
+                    ),
+                    _PostStat(icon: Icons.repeat_rounded, value: post.shares),
+                    Obx(() {
+                      final isSaved = postsController.isSaved(post.id);
+                      return IconButton(
+                        onPressed: () => postsController.toggleSaved(post.id),
+                        icon: Icon(
+                          isSaved
+                              ? Icons.bookmark_added_rounded
+                              : Icons.bookmark_outline_rounded,
+                        ),
+                        tooltip: isSaved ? 'Unsave' : 'Save',
+                      );
+                    }),
+                  ],
+                ),
               ),
             ],
           ),

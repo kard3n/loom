@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:get/get.dart';
+import 'package:loom_app/src/controllers/posts_controller.dart';
+import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/network/networker.dart';
 import 'package:wifi_iot/wifi_iot.dart';
 
@@ -64,8 +67,17 @@ class WifiConnector {
       withInternet: true,
     );
 
-    await updateUserDatabase();
-    await updatePostDatabase();
+    if (ok) {
+      await updateUserDatabase();
+      await updatePostDatabase();
+
+      if (Get.isRegistered<ProfilesController>()) {
+        await Get.find<ProfilesController>().refreshProfiles();
+      }
+      if (Get.isRegistered<PostsController>()) {
+        await Get.find<PostsController>().loadPosts();
+      }
+    }
 
     return ok;
   }
