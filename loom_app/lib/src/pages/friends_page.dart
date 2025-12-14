@@ -163,6 +163,8 @@ class FriendsPage extends GetView<ProfilesController> {
   }
 
   void _showManageSheet(BuildContext context, Profile friend) {
+    final Color errorColor = Theme.of(context).colorScheme.error;
+
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -185,9 +187,9 @@ class FriendsPage extends GetView<ProfilesController> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.block_rounded, color: Colors.deepOrange),
+                  leading: Icon(Icons.block_rounded, color: errorColor),
                   title: const Text('Block'),
-                  textColor: Colors.deepOrange,
+                  textColor: errorColor,
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -196,9 +198,9 @@ class FriendsPage extends GetView<ProfilesController> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+                  leading: Icon(Icons.delete_forever_rounded, color: errorColor),
                   title: const Text('Delete'),
-                  textColor: Colors.red,
+                  textColor: errorColor,
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     ScaffoldMessenger.of(context).showSnackBar(

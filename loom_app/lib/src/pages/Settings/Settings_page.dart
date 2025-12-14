@@ -24,6 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme cs = theme.colorScheme;
 
     return Column(
       children: <Widget>[
@@ -50,7 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'General Settings',
                 subtitle: 'App preferences and notifications',
                 icon: Icons.tune_rounded,
-                accentColor: Colors.blue,
+                accentColor: cs.primary,
                 destination: GeneralSettingsPage(),
               ),
               _buildCategoryHeader(theme, 'Privacy'),
@@ -58,7 +59,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'Privacy & Security',
                 subtitle: 'Account protection and data',
                 icon: Icons.shield_outlined,
-                accentColor: Colors.green,
+                accentColor: cs.secondary,
                 destination: PrivacySettingsPage(),
               ),
               _buildCategoryHeader(theme, 'Debug'),
@@ -66,7 +67,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'Developer Options',
                 subtitle: 'Technical logs and debug tools',
                 icon: Icons.bug_report_outlined,
-                accentColor: Colors.orange,
+                accentColor: cs.tertiary,
                 destination: DebugSettingsPage(),
               ),
             ],

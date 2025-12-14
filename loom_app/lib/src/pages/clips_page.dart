@@ -73,12 +73,15 @@ class ClipsPage extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.55),
+                            color: theme.colorScheme.inverseSurface.withValues(alpha: 0.65),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             clip.clipDurationLabel ?? '',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onInverseSurface,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
@@ -87,7 +90,10 @@ class ClipsPage extends StatelessWidget {
                         right: 12,
                         child: IconButton.filled(
                           onPressed: () {},
-                          style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.85)),
+                          style: IconButton.styleFrom(
+                            backgroundColor: theme.colorScheme.surface.withValues(alpha: 0.85),
+                            foregroundColor: theme.colorScheme.onSurface,
+                          ),
                           icon: const Icon(Icons.play_arrow_rounded),
                         ),
                       ),

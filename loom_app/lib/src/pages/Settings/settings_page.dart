@@ -17,6 +17,7 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme cs = theme.colorScheme;
 
     return Column(
       children: <Widget>[
@@ -39,27 +40,27 @@ class SettingsPage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
             children: [
               _buildCategoryHeader(theme, 'General'),
-              const SettingsCategoryTile(
+              SettingsCategoryTile(
                 title: 'General Settings',
                 subtitle: 'App preferences and notifications',
                 icon: Icons.tune_rounded,
-                accentColor: Colors.blue,
+                accentColor: cs.primary,
                 destination: GeneralSettingsPage(),
               ),
               _buildCategoryHeader(theme, 'Privacy'),
-              const SettingsCategoryTile(
+              SettingsCategoryTile(
                 title: 'Privacy & Security',
                 subtitle: 'Account protection and data',
                 icon: Icons.shield_outlined,
-                accentColor: Colors.green,
+                accentColor: cs.secondary,
                 destination: PrivacySettingsPage(),
               ),
               _buildCategoryHeader(theme, 'Debug'),
-              const SettingsCategoryTile(
+              SettingsCategoryTile(
                 title: 'Developer Options',
                 subtitle: 'Technical logs and debug tools',
                 icon: Icons.bug_report_outlined,
-                accentColor: Colors.orange,
+                accentColor: cs.tertiary,
                 destination: DebugSettingsPage(),
               ),
             ],

@@ -91,10 +91,10 @@ class _TotemHeader extends StatelessWidget {
                 ],
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Icon(
                 Icons.signal_wifi_statusbar_4_bar,
-                color: Colors.white,
+                color: theme.colorScheme.onPrimary,
               ),
             ),
           ),

@@ -7,6 +7,7 @@ class DebugSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -33,14 +34,14 @@ class DebugSettingsPage extends StatelessWidget {
             title: 'View System Logs',
             subtitle: 'Real-time application runtime data',
             icon: Icons.terminal_rounded,
-            color: Colors.orange,
+            color: cs.tertiary,
           ),
           _buildDebugTile(
             theme,
             title: 'Network Inspector',
             subtitle: 'Monitor API requests and responses',
             icon: Icons.data_usage_rounded,
-            color: Colors.blue,
+            color: cs.secondary,
           ),
           const Divider(height: 32),
           _buildSectionHeader(theme, 'Experimental Features'),
@@ -49,14 +50,14 @@ class DebugSettingsPage extends StatelessWidget {
             title: 'Strict Mode',
             subtitle: 'Flash screen on main thread disk IO',
             icon: Icons.flash_on_rounded,
-            color: Colors.redAccent,
+            color: cs.error,
           ),
           _buildDebugTile(
             theme,
             title: 'UI Inspector',
             subtitle: 'Show widget bounding boxes',
             icon: Icons.layers_outlined,
-            color: Colors.teal,
+            color: cs.primary,
           ),
           const Divider(height: 32),
           _buildSectionHeader(theme, 'Maintenance'),
@@ -65,7 +66,7 @@ class DebugSettingsPage extends StatelessWidget {
             title: 'Reset Database',
             subtitle: 'Wipe all local SQL storage',
             icon: Icons.delete_forever_rounded,
-            color: Colors.grey,
+            color: cs.error,
           ),
         ],
       ),

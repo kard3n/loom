@@ -293,8 +293,8 @@ class _HomeHeader extends StatelessWidget {
                 ],
               ),
             ),
-            child: const Center(
-              child: Icon(Icons.bolt_rounded, color: Colors.white),
+            child: Center(
+              child: Icon(Icons.bolt_rounded, color: theme.colorScheme.onPrimary),
             ),
           ),
           const SizedBox(width: 12),
@@ -359,19 +359,19 @@ class _StoriesSection extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: story.isCurrentUser
                         ? LinearGradient(colors: <Color>[theme.colorScheme.primary, theme.colorScheme.secondary])
-                        : const LinearGradient(colors: <Color>[Color(0xFFFA709A), Color(0xFFFEE140)]),
+                        : LinearGradient(colors: <Color>[theme.colorScheme.tertiary, theme.colorScheme.secondary]),
                   ),
                   child: Container(
                     margin: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white,
-                      border: Border.all(color: Colors.white, width: 2),
+                      color: theme.colorScheme.surface,
+                      border: Border.all(color: theme.colorScheme.surface, width: 2),
                     ),
                     child: CircleAvatar(
-                      backgroundColor: story.isCurrentUser ? theme.colorScheme.primary : const Color(0xFFE0E6F5),
+                      backgroundColor: story.isCurrentUser ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
                       child: story.isCurrentUser
-                          ? const Icon(Icons.add_rounded, color: Colors.white)
+                          ? Icon(Icons.add_rounded, color: theme.colorScheme.onPrimary)
                           : Text(_initial(story.name), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                     ),
                   ),
