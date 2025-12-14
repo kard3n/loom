@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 import 'package:loom_app/src/models/totem.dart';
+import 'package:loom_app/src/rust/api/simple.dart' as rust;
+import 'package:path_provider/path_provider.dart';
 
 class TotemsController extends GetxController {
   final RxList<Totem> totems = <Totem>[].obs;
@@ -7,17 +9,34 @@ class TotemsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    load();
+    loadTotems();
   }
 
-  Future<void> load() async {
-    totems.assignAll(await fetchTotems());
+  Future<void> loadTotems() async {
+    try {
+      final dbPath = await _getDatabasePath();
+      final db = rust.AppDatabase(path: dbPath);
+      final rustTotems = await db.getAllTotems();
+
+      totems.assignAll(
+        rustTotems
+            .map(
+              (t) => Totem(
+                id: t.uuid,
+                name: t.name,
+                description: t.location,
+                signalStrength: 0,
+              ),
+            )
+            .toList(growable: false),
+      );
+    } catch (_) {
+      totems.assignAll(const <Totem>[]);
+    }
   }
 
-  Future<List<Totem>> fetchTotems() async {
-    return const <Totem>[
-      Totem(id: 't1', name: 'xy', description: 'desc', signalStrength: 3),
-      Totem(id: 't2', name: 'ab', description: 'hello', signalStrength: 4),
-    ];
+  Future<String> _getDatabasePath() async {
+    final directory = await getApplicationDocumentsDirectory();
+    return '${directory.path}/loom_app.db';
   }
 }

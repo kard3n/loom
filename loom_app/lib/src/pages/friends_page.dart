@@ -21,7 +21,7 @@ class FriendsPage extends GetView<ProfilesController> {
         child: ListView.builder(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 32, 16, 96),
-          itemCount: friends.length + 1,
+          itemCount: friends.isEmpty ? 2 : friends.length + 1,
           itemBuilder: (BuildContext context, int index) {
             if (index == 0) {
               return Padding(
@@ -43,6 +43,20 @@ class FriendsPage extends GetView<ProfilesController> {
               );
             }
 
+            if (friends.isEmpty) {
+              return Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'No friends yet.',
+                    style: sectionTheme.textTheme.bodyMedium?.copyWith(color: sectionTheme.colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              );
+            }
+
             final Profile friend = friends[index - 1];
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
@@ -50,8 +64,8 @@ class FriendsPage extends GetView<ProfilesController> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: <Color>[
-                      sectionTheme.colorScheme.primary.withOpacity(0.12),
-                      sectionTheme.colorScheme.primary.withOpacity(0.04),
+                      sectionTheme.colorScheme.primary.withValues(alpha: 0.12),
+                      sectionTheme.colorScheme.primary.withValues(alpha: 0.04),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -74,7 +88,7 @@ class FriendsPage extends GetView<ProfilesController> {
                             children: <Widget>[
                               CircleAvatar(
                                 radius: 26,
-                                backgroundColor: sectionTheme.colorScheme.primary.withOpacity(0.15),
+                                backgroundColor: sectionTheme.colorScheme.primary.withValues(alpha: 0.15),
                                 child: Text(
                                   friend.name.substring(0, 1),
                                   style: sectionTheme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -149,6 +163,8 @@ class FriendsPage extends GetView<ProfilesController> {
   }
 
   void _showManageSheet(BuildContext context, Profile friend) {
+    final Color errorColor = Theme.of(context).colorScheme.error;
+
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -171,9 +187,9 @@ class FriendsPage extends GetView<ProfilesController> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.block_rounded, color: Colors.deepOrange),
+                  leading: Icon(Icons.block_rounded, color: errorColor),
                   title: const Text('Block'),
-                  textColor: Colors.deepOrange,
+                  textColor: errorColor,
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -182,9 +198,9 @@ class FriendsPage extends GetView<ProfilesController> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+                  leading: Icon(Icons.delete_forever_rounded, color: errorColor),
                   title: const Text('Delete'),
-                  textColor: Colors.red,
+                  textColor: errorColor,
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     ScaffoldMessenger.of(context).showSnackBar(

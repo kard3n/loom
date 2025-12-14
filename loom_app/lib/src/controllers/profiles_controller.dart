@@ -1,17 +1,69 @@
+import 'dart:io';
+
 import 'package:get/get.dart';
 import 'package:loom_app/src/models/profile.dart';
+import 'package:loom_app/src/rust/api/simple.dart' as rust;
+import 'package:path_provider/path_provider.dart';
 
 class ProfilesController extends GetxController {
   final RxList<Profile> profiles = <Profile>[].obs;
+  final RxString currentUserId = ''.obs;
 
   @override
   void onInit() {
     super.onInit();
-    load();
+    _loadIdentity().then((_) => loadProfiles());
   }
 
-  Future<void> load() async {
-    profiles.assignAll(await fetchProfiles());
+  Future<void> refreshProfiles() async {
+    await _loadIdentity();
+    await loadProfiles();
+  }
+
+  Future<void> _loadIdentity() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/user_identity.txt');
+      if (await file.exists()) {
+        currentUserId.value = (await file.readAsString()).trim();
+      } else {
+        currentUserId.value = '';
+      }
+    } catch (_) {
+      currentUserId.value = '';
+    }
+  }
+
+  Future<String> _getDatabasePath() async {
+    final directory = await getApplicationDocumentsDirectory();
+    return '${directory.path}/loom_app.db';
+  }
+
+  Future<void> loadProfiles() async {
+    try {
+      final dbPath = await _getDatabasePath();
+      final database = rust.AppDatabase(path: dbPath);
+      final rustUsers = await database.getAllUsers();
+
+      profiles.assignAll(
+        rustUsers
+            .map(
+              (u) => Profile(
+                id: u.uuid,
+                name: u.username,
+                handle: _handleFromUsername(u.username),
+                status: u.status,
+                bio: u.bio,
+                lastSeenAt: u.lastContact,
+                lastSeenLabel: _formatTimeAgo(u.lastContact),
+                isCurrentUser: u.uuid == currentUserId.value,
+              ),
+            )
+            .toList(growable: false),
+      );
+    } catch (_) {
+      profiles.assignAll(const <Profile>[]);
+    }
   }
 
   Profile? byId(String id) {
@@ -34,50 +86,20 @@ class ProfilesController extends GetxController {
     }
     return null;
   }
+}
 
-  Future<List<Profile>> fetchProfiles() async {
-    return const <Profile>[
-      Profile(
-        id: 'me',
-        name: 'You',
-        handle: '@you',
-        status: 'Here to build.',
-        bio: 'A short vibe line goes here.',
-        lastSeenLabel: 'now',
-        isCurrentUser: true,
-      ),
-      Profile(
-        id: 'ava',
-        name: 'Ava Chen',
-        handle: '@avacreates',
-        status: 'Sketching new identity for Loom.',
-        bio: 'Designing rituals and systems.',
-        lastSeenLabel: '19 hours ago',
-      ),
-      Profile(
-        id: 'miles',
-        name: 'Miles Carter',
-        handle: '@milesloops',
-        status: 'Pair programming with community.',
-        bio: 'Shipping tiny experiments daily.',
-        lastSeenLabel: '15 minutes ago',
-      ),
-      Profile(
-        id: 'sasha',
-        name: 'Sasha Park',
-        handle: '@sashapark',
-        status: 'Collecting Qs for AMA tomorrow.',
-        bio: 'Building healthier online spaces.',
-        lastSeenLabel: '4 days ago',
-      ),
-      Profile(
-        id: 'lina',
-        name: 'Lina Patel',
-        handle: '@linapatel',
-        status: 'Planning the winter retreat.',
-        bio: 'Docs, travel, and cozy vibes.',
-        lastSeenLabel: '42 seconds ago',
-      ),
-    ];
-  }
+String _handleFromUsername(String username) {
+  final trimmed = username.trim();
+  if (trimmed.isEmpty) return '@user';
+  final normalized = trimmed.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+  return normalized.startsWith('@') ? normalized : '@$normalized';
+}
+
+String _formatTimeAgo(DateTime dt) {
+  final localDt = dt.toLocal();
+  final diff = DateTime.now().difference(localDt);
+  if (diff.inDays > 0) return '${diff.inDays}d ago';
+  if (diff.inHours > 0) return '${diff.inHours}h ago';
+  if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+  return 'Just now';
 }

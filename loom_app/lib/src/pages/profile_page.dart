@@ -55,7 +55,7 @@ class ProfilePage extends StatelessWidget {
                         children: <Widget>[
                           CircleAvatar(
                             radius: 40,
-                            backgroundColor: cs.primary.withOpacity(0.15),
+                            backgroundColor: cs.primary.withValues(alpha: 0.15),
                             child: Text(
                               _initial(friendName),
                               style: theme.textTheme.headlineMedium?.copyWith(
@@ -78,7 +78,7 @@ class ProfilePage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  bio,
+                                  profile?.status ?? '',
                                   style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                                 ),
                               ],
@@ -127,7 +127,7 @@ class ProfilePage extends StatelessWidget {
                     _SectionCard(
                       title: 'About',
                       child: Text(
-                        profile?.status ?? '',
+                        bio.isNotEmpty ? bio : 'This user has not added a bio yet.',
                         style: theme.textTheme.bodyMedium,
                       ),
                     ),
@@ -139,19 +139,9 @@ class ProfilePage extends StatelessWidget {
                         children: <Widget>[
                           ListTile(
                             contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.bookmark_added_rounded),
-                            title: const Text('Pinned thread'),
-                            subtitle: const Text('A saved highlight you can open later.'),
-                            trailing: const Icon(Icons.chevron_right_rounded),
-                            onTap: () {},
-                          ),
-                          const Divider(height: 1),
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.auto_awesome_rounded),
-                            title: const Text('Totem ritual'),
-                            subtitle: const Text('A ritual or prompt this user is known for.'),
-                            trailing: const Icon(Icons.chevron_right_rounded),
+                            leading: const Icon(Icons.bookmarks_outlined),
+                            title: const Text('No pinned items'),
+                            subtitle: const Text('Pins will show up here when available.'),
                             onTap: () {},
                           ),
                         ],
@@ -169,14 +159,18 @@ class ProfilePage extends StatelessWidget {
                             )
                           else ...<Widget>[
                             _PostPlaceholderTile(
-                              title: recent.first.text,
-                              subtitle: recent.first.timeAgoLabel,
+                              title: (recent.first.title.isNotEmpty && recent.first.title != 'Untitled')
+                                  ? recent.first.title
+                                  : recent.first.text,
+                              subtitle: '${recent.first.timeAgoLabel} • ${recent.first.text}'.trim(),
                             ),
                             if (recent.length > 1) ...<Widget>[
                               const Divider(height: 1),
                               _PostPlaceholderTile(
-                                title: recent[1].text,
-                                subtitle: recent[1].timeAgoLabel,
+                                title: (recent[1].title.isNotEmpty && recent[1].title != 'Untitled')
+                                    ? recent[1].title
+                                    : recent[1].text,
+                                subtitle: '${recent[1].timeAgoLabel} • ${recent[1].text}'.trim(),
                               ),
                             ],
                           ],

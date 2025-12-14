@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'package:flutter/material.dart';
 
 // --- Main Settings Entry (Subprogram Definition) ---
@@ -19,18 +21,16 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  String _query = '';
-
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme cs = theme.colorScheme;
 
     return Column(
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 32, 16, 12),
           child: TextField(
-            onChanged: (String value) => setState(() => _query = value),
             decoration: InputDecoration(
               hintText: 'Search settings...',
               prefixIcon: const Icon(Icons.search_rounded),
@@ -51,7 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'General Settings',
                 subtitle: 'App preferences and notifications',
                 icon: Icons.tune_rounded,
-                accentColor: Colors.blue,
+                accentColor: cs.primary,
                 destination: GeneralSettingsPage(),
               ),
               _buildCategoryHeader(theme, 'Privacy'),
@@ -59,7 +59,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'Privacy & Security',
                 subtitle: 'Account protection and data',
                 icon: Icons.shield_outlined,
-                accentColor: Colors.green,
+                accentColor: cs.secondary,
                 destination: PrivacySettingsPage(),
               ),
               _buildCategoryHeader(theme, 'Debug'),
@@ -67,7 +67,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'Developer Options',
                 subtitle: 'Technical logs and debug tools',
                 icon: Icons.bug_report_outlined,
-                accentColor: Colors.orange,
+                accentColor: cs.tertiary,
                 destination: DebugSettingsPage(),
               ),
             ],
