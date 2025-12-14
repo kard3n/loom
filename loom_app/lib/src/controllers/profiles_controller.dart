@@ -54,6 +54,7 @@ class ProfilesController extends GetxController {
                 handle: _handleFromUsername(u.username),
                 status: u.status,
                 bio: u.bio,
+                lastSeenAt: u.lastContact,
                 lastSeenLabel: _formatTimeAgo(u.lastContact),
                 isCurrentUser: u.uuid == currentUserId.value,
               ),

@@ -4,6 +4,7 @@ import 'package:loom_app/src/controllers/posts_controller.dart';
 import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/post.dart';
 import 'package:loom_app/src/models/profile.dart';
+import 'package:loom_app/src/pages/profile_page.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
 
 class FeedPage extends StatelessWidget {
@@ -67,10 +68,8 @@ class FeedPage extends StatelessWidget {
 
         final greeting = rust.greet(name: me.name);
 
-        final stories = <Profile>[
-          me,
-          ...profilesController.profiles.where((p) => !p.isCurrentUser),
-        ];
+        final profiles = profilesController.profiles.toList(growable: false);
+        profiles.sort((a, b) => b.lastSeenAt.compareTo(a.lastSeenAt));
 
         final allPosts = postsController.posts;
         final topics = postsController.trendingTags(limit: 6);
@@ -85,7 +84,7 @@ class FeedPage extends StatelessWidget {
               ),
             ),
             SliverToBoxAdapter(
-              child: _StoriesSection(stories: stories),
+              child: _ProfilesSection(profiles: profiles),
             ),
             SliverToBoxAdapter(
               child: _TopicsSection(
@@ -324,30 +323,30 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
-class _StoriesSection extends StatelessWidget {
-  const _StoriesSection({required this.stories});
-  final List<Profile> stories;
+class _ProfilesSection extends StatelessWidget {
+  const _ProfilesSection({required this.profiles});
+  final List<Profile> profiles;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     return SizedBox(
-      height: 110,
+      height: 128,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        itemCount: stories.length,
+        itemCount: profiles.length,
         separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (BuildContext context, int index) {
-          final Profile story = stories[index];
+          final Profile profile = profiles[index];
           return GestureDetector(
             onTap: () {
-              if (story.isCurrentUser) {
-                // Could open edit profile here
-              } else {
-                debugPrint("View story for ${story.name}");
-              }
+              Navigator.of(context).push(
+                MaterialPageRoute<ProfilePage>(
+                  builder: (BuildContext _) => ProfilePage(friendName: profile.name),
+                ),
+              );
             },
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -357,9 +356,9 @@ class _StoriesSection extends StatelessWidget {
                   height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: story.isCurrentUser
-                        ? LinearGradient(colors: <Color>[theme.colorScheme.primary, theme.colorScheme.secondary])
-                        : LinearGradient(colors: <Color>[theme.colorScheme.tertiary, theme.colorScheme.secondary]),
+                    gradient: LinearGradient(
+                      colors: <Color>[theme.colorScheme.tertiary, theme.colorScheme.secondary],
+                    ),
                   ),
                   child: Container(
                     margin: const EdgeInsets.all(3),
@@ -369,17 +368,44 @@ class _StoriesSection extends StatelessWidget {
                       border: Border.all(color: theme.colorScheme.surface, width: 2),
                     ),
                     child: CircleAvatar(
-                      backgroundColor: story.isCurrentUser ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
-                      child: story.isCurrentUser
-                          ? Icon(Icons.add_rounded, color: theme.colorScheme.onPrimary)
-                          : Text(_initial(story.name), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                      backgroundColor: profile.isCurrentUser
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.surfaceContainerHighest,
+                      child: Text(
+                        _initial(profile.name),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: profile.isCurrentUser ? theme.colorScheme.onPrimary : null,
+                        ),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: 72,
-                  child: Text(story.name, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        profile.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        profile.lastSeenLabel,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

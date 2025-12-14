@@ -5,6 +5,7 @@ class Profile {
     required this.handle,
     required this.status,
     required this.bio,
+    required this.lastSeenAt,
     required this.lastSeenLabel,
     this.isCurrentUser = false,
   });
@@ -14,6 +15,7 @@ class Profile {
   final String handle;
   final String status;
   final String bio;
+  final DateTime lastSeenAt;
   final String lastSeenLabel;
   final bool isCurrentUser;
 }

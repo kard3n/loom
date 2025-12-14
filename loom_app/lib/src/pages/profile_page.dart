@@ -78,7 +78,7 @@ class ProfilePage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  bio,
+                                  profile?.status ?? '',
                                   style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                                 ),
                               ],
@@ -127,7 +127,7 @@ class ProfilePage extends StatelessWidget {
                     _SectionCard(
                       title: 'About',
                       child: Text(
-                        profile?.status ?? '',
+                        bio.isNotEmpty ? bio : 'This user has not added a bio yet.',
                         style: theme.textTheme.bodyMedium,
                       ),
                     ),
@@ -159,14 +159,18 @@ class ProfilePage extends StatelessWidget {
                             )
                           else ...<Widget>[
                             _PostPlaceholderTile(
-                              title: recent.first.text,
-                              subtitle: recent.first.timeAgoLabel,
+                              title: (recent.first.title.isNotEmpty && recent.first.title != 'Untitled')
+                                  ? recent.first.title
+                                  : recent.first.text,
+                              subtitle: '${recent.first.timeAgoLabel} • ${recent.first.text}'.trim(),
                             ),
                             if (recent.length > 1) ...<Widget>[
                               const Divider(height: 1),
                               _PostPlaceholderTile(
-                                title: recent[1].text,
-                                subtitle: recent[1].timeAgoLabel,
+                                title: (recent[1].title.isNotEmpty && recent[1].title != 'Untitled')
+                                    ? recent[1].title
+                                    : recent[1].text,
+                                subtitle: '${recent[1].timeAgoLabel} • ${recent[1].text}'.trim(),
                               ),
                             ],
                           ],
