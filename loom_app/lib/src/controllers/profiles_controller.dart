@@ -34,14 +34,14 @@ class ProfilesController extends GetxController {
     }
   }
 
-  String _getDatabasePath() {
-    final directory = Directory.current;
+  Future<String> _getDatabasePath() async {
+    final directory = await getApplicationDocumentsDirectory();
     return '${directory.path}/loom_app.db';
   }
 
   Future<void> loadProfiles() async {
     try {
-      final dbPath = _getDatabasePath();
+      final dbPath = await _getDatabasePath();
       final database = rust.AppDatabase(path: dbPath);
       final rustUsers = await database.getAllUsers();
 
