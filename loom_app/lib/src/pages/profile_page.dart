@@ -1,11 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:loom_app/src/controllers/images_controller.dart';
 import 'package:loom_app/src/controllers/posts_controller.dart';
 import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/post.dart';
+import 'package:loom_app/src/pages/full_screen_image_page.dart';
+import 'package:loom_app/src/widgets/path_image.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool _isEditing = false;
+  bool _isSaving = false;
+
+  String? _profilePicturePath;
+
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _statusController = TextEditingController();
+  final TextEditingController _bioController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _statusController.dispose();
+    _bioController.dispose();
+    super.dispose();
+  }
+
+  void _enterEditMode({
+    required String name,
+    required String status,
+    required String bio,
+    required String? profilePicture,
+  }) {
+    _nameController.text = name;
+    _statusController.text = status;
+    _bioController.text = bio;
+    _profilePicturePath = profilePicture;
+    setState(() => _isEditing = true);
+  }
+
+  Future<void> _saveEdits(ProfilesController profilesController) async {
+    final String name = _nameController.text.trim();
+    final String status = _statusController.text.trim();
+    final String bio = _bioController.text.trim();
+
+    if (name.isEmpty) {
+      Get.snackbar('Error', 'Name cannot be empty');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await profilesController.updateCurrentUser(
+        name: name,
+        status: status,
+        bio: bio,
+        profilePicture: _profilePicturePath,
+      );
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _isEditing = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      Get.snackbar('Error', 'Failed to save profile');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,11 +81,14 @@ class ProfilePage extends StatelessWidget {
     final ColorScheme cs = theme.colorScheme;
     final profilesController = Get.find<ProfilesController>();
     final postsController = Get.find<PostsController>();
+    final imagesController = Get.find<ImagesController>();
 
     return Obx(() {
       final profile = profilesController.currentUser();
       final displayName = profile?.name ?? 'You';
       final bio = profile?.bio ?? '';
+      final status = profile?.status ?? '';
+      final String? currentProfilePicture = profile?.profilePicture;
       final recent = postsController.posts
           .where((Post p) => p.authorId == (profile?.id ?? ''))
           .take(2)
@@ -52,14 +123,54 @@ class ProfilePage extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: <Widget>[
-                          CircleAvatar(
-                            radius: 40,
-                            backgroundColor: cs.primary.withValues(alpha: 0.15),
-                            child: Text(
-                              _initial(displayName),
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: cs.primary,
+                          GestureDetector(
+                            onTap: () async {
+                              final String? picture = _isEditing
+                                  ? _profilePicturePath
+                                  : currentProfilePicture;
+
+                              if (_isEditing) {
+                                final String? saved =
+                                    await imagesController.pickAndStoreImage(
+                                  folder: 'profile_pictures',
+                                );
+                                if (!mounted) return;
+                                if (saved == null) return;
+                                setState(() => _profilePicturePath = saved);
+                                return;
+                              }
+
+                              if (picture == null || picture.trim().isEmpty) {
+                                return;
+                              }
+
+                              FullScreenImagePage.open(context, picture);
+                            },
+                            child: ClipOval(
+                              child: Container(
+                                width: 80,
+                                height: 80,
+                                color: cs.primary.withValues(alpha: 0.15),
+                                alignment: Alignment.center,
+                                child: () {
+                                  final String? picture =
+                                      _isEditing ? _profilePicturePath : currentProfilePicture;
+                                  if (picture != null && picture.trim().isNotEmpty) {
+                                    return PathImage(
+                                      path: picture,
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.cover,
+                                    );
+                                  }
+                                  return Text(
+                                    _initial(displayName),
+                                    style: theme.textTheme.headlineMedium?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: cs.primary,
+                                    ),
+                                  );
+                                }(),
                               ),
                             ),
                           ),
@@ -69,17 +180,49 @@ class ProfilePage extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                Text(
-                                  displayName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-                                ),
+                                if (_isEditing)
+                                  TextField(
+                                    controller: _nameController,
+                                    maxLines: 1,
+                                    style: theme.textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      border: InputBorder.none,
+                                      hintText: 'Name',
+                                    ),
+                                  )
+                                else
+                                  Text(
+                                    displayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  profile?.status ?? '',
-                                  style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
-                                ),
+                                if (_isEditing)
+                                  TextField(
+                                    controller: _statusController,
+                                    maxLines: 1,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      border: InputBorder.none,
+                                      hintText: 'Status',
+                                    ),
+                                  )
+                                else
+                                  Text(
+                                    status,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -115,9 +258,26 @@ class ProfilePage extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(Icons.person_add_alt_1_rounded),
-                            label: const Text('Edit'),
+                            onPressed: _isSaving
+                                ? null
+                                : () async {
+                                    if (!_isEditing) {
+                                      _enterEditMode(
+                                        name: displayName,
+                                        status: status,
+                                        bio: bio,
+                                        profilePicture: currentProfilePicture,
+                                      );
+                                    } else {
+                                      await _saveEdits(profilesController);
+                                    }
+                                  },
+                            icon: Icon(
+                              _isEditing
+                                  ? Icons.check_rounded
+                                  : Icons.person_add_alt_1_rounded,
+                            ),
+                            label: Text(_isEditing ? 'Save' : 'Edit'),
                           ),
                         ),
                       ],
@@ -125,10 +285,23 @@ class ProfilePage extends StatelessWidget {
                     const SizedBox(height: 16),
                     _SectionCard(
                       title: 'About',
-                      child: Text(
-                        bio.isNotEmpty ? bio : 'This user has not added a bio yet.',
-                        style: theme.textTheme.bodyMedium,
-                      ),
+                      child: _isEditing
+                          ? TextField(
+                              controller: _bioController,
+                              maxLines: 4,
+                              minLines: 2,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'Bio',
+                              ),
+                              style: theme.textTheme.bodyMedium,
+                            )
+                          : Text(
+                              bio.isNotEmpty
+                                  ? bio
+                                  : 'This user has not added a bio yet.',
+                              style: theme.textTheme.bodyMedium,
+                            ),
                     ),
                     const SizedBox(height: 12),
                     _SectionCard(

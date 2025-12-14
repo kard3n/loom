@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:loom_app/src/controllers/images_controller.dart';
 import 'package:loom_app/src/controllers/posts_controller.dart';
 import 'package:loom_app/src/controllers/profiles_controller.dart';
+import 'package:loom_app/src/controllers/totems_controller.dart';
 import 'package:loom_app/src/models/post.dart';
 import 'package:loom_app/src/models/profile.dart';
+import 'package:loom_app/src/models/totem.dart';
 import 'package:loom_app/src/pages/friend_profile_page.dart';
+import 'package:loom_app/src/pages/full_screen_image_page.dart';
 import 'package:loom_app/src/pages/profile_page.dart';
+import 'package:loom_app/src/pages/qr_scanner_page.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
+import 'package:loom_app/src/widgets/path_image.dart';
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
@@ -183,6 +189,7 @@ class _CreatePostSheetContent extends StatefulWidget {
 class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _bodyController = TextEditingController();
+  String? _imagePath;
 
   void _handlePost() {
     if (_titleController.text.trim().isNotEmpty ||
@@ -190,6 +197,7 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
       Get.find<PostsController>().addPost(
         _titleController.text,
         _bodyController.text,
+        imagePath: _imagePath,
       );
       Navigator.pop(context);
     }
@@ -257,13 +265,30 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
             ),
           ),
           const SizedBox(height: 20),
+          if (_imagePath != null) ...[
+            GestureDetector(
+              onTap: () => FullScreenImagePage.open(context, _imagePath!),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: PathImage(path: _imagePath!, fit: BoxFit.cover),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           Row(
             children: [
               IconButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Open image picker...')),
-                  );
+                  Get.find<ImagesController>()
+                      .pickAndStoreImage(folder: 'post_images')
+                      .then((saved) {
+                    if (!mounted) return;
+                    if (saved == null) return;
+                    setState(() => _imagePath = saved);
+                  });
                 },
                 icon: Icon(
                   Icons.image_outlined,
@@ -348,7 +373,30 @@ class _HomeHeader extends StatelessWidget {
           ),
           IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded)),
           IconButton(
-            onPressed: () {},
+            onPressed: () async {
+              final String? scanned = await Navigator.of(context)
+                  .push<String?>(
+                MaterialPageRoute<String?>(
+                  builder: (_) => const QrScannerPage(),
+                ),
+              );
+
+              if (!context.mounted) return;
+
+              final String value = (scanned ?? '').trim();
+              if (value.isEmpty) return;
+
+              final TotemsController totemsController =
+                  Get.find<TotemsController>();
+              final Totem? totem = totemsController.resolveTotemFromScan(value);
+
+              if (totem == null) {
+                Get.snackbar('Not found', 'No totem for: $value');
+                return;
+              }
+
+              Get.snackbar('Totem found', totem.name);
+            },
             icon: const Icon(Icons.qr_code_scanner_rounded),
           ),
         ],
@@ -431,6 +479,7 @@ class _ProfileBarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final String? picture = profile.profilePicture;
 
     return GestureDetector(
       onTap: onTap,
@@ -460,15 +509,23 @@ class _ProfileBarItem extends StatelessWidget {
                 backgroundColor: profile.isCurrentUser
                     ? theme.colorScheme.primary
                     : theme.colorScheme.surfaceContainerHighest,
-                child: Text(
-                  _initial(profile.name),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: profile.isCurrentUser
-                        ? theme.colorScheme.onPrimary
-                        : null,
-                  ),
-                ),
+                child: (picture != null && picture.trim().isNotEmpty)
+                    ? ClipOval(
+                        child: SizedBox(
+                          width: 72,
+                          height: 72,
+                          child: PathImage(path: picture, fit: BoxFit.cover),
+                        ),
+                      )
+                    : Text(
+                        _initial(profile.name),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: profile.isCurrentUser
+                              ? theme.colorScheme.onPrimary
+                              : null,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -563,24 +620,45 @@ class _PostCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final postsController = Get.find<PostsController>();
+    final String? authorPicture = author?.profilePicture;
     return Card(
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       elevation: 0,
-      color: theme.colorScheme.surface,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: theme.colorScheme.primary.withValues(
-                alpha: 0.12,
-              ),
-              child: Text(
-                _initial(author?.name ?? '?'),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            ListTile(
+            leading: GestureDetector(
+              onTap: (authorPicture != null && authorPicture.trim().isNotEmpty)
+                  ? () => FullScreenImagePage.open(context, authorPicture)
+                  : null,
+              child: CircleAvatar(
+                backgroundColor: theme.colorScheme.primary.withValues(
+                  alpha: 0.12,
                 ),
+                child: (authorPicture != null && authorPicture.trim().isNotEmpty)
+                    ? ClipOval(
+                        child: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: PathImage(
+                            path: authorPicture,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        _initial(author?.name ?? '?'),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
               ),
             ),
             title: Text(
@@ -616,44 +694,13 @@ class _PostCard extends StatelessWidget {
           if (post.imageUrl != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Image.network(
-                    post.imageUrl!,
-                    fit: BoxFit.cover,
-                    loadingBuilder:
-                        (
-                          BuildContext context,
-                          Widget child,
-                          ImageChunkEvent? loadingProgress,
-                        ) {
-                          if (loadingProgress == null) return child;
-                          final double? expectedBytes = loadingProgress
-                              .expectedTotalBytes
-                              ?.toDouble();
-                          final double loadedBytes = loadingProgress
-                              .cumulativeBytesLoaded
-                              .toDouble();
-                          return Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            alignment: Alignment.center,
-                            child: CircularProgressIndicator(
-                              value: expectedBytes != null
-                                  ? loadedBytes / expectedBytes
-                                  : null,
-                            ),
-                          );
-                        },
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.broken_image_outlined,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+              child: GestureDetector(
+                onTap: () => FullScreenImagePage.open(context, post.imageUrl!),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: PathImage(path: post.imageUrl!, fit: BoxFit.cover),
                   ),
                 ),
               ),
@@ -702,8 +749,9 @@ class _PostCard extends StatelessWidget {
                 }),
               ],
             ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

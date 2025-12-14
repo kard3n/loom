@@ -189,7 +189,7 @@ class PostsController extends GetxController {
     }
   }
 
-  Future<void> addPost(String title, String body) async {
+  Future<void> addPost(String title, String body, {String? imagePath}) async {
     // Check if we have a valid user ID before posting
     if (currentUserId.value.isEmpty) {
       Get.snackbar("Error", "You are not logged in.");
@@ -208,7 +208,7 @@ class PostsController extends GetxController {
         body: body,
         timestamp: DateTime.now().toUtc(),
         sourceTotem: sourceTotemId,
-        image: null,
+        image: imagePath,
       );
 
       await db.createPost(post: newPost);

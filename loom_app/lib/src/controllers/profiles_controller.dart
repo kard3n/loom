@@ -54,6 +54,7 @@ class ProfilesController extends GetxController {
                 handle: _handleFromUsername(u.username),
                 status: u.status,
                 bio: u.bio,
+                profilePicture: u.profilePicture,
                 lastSeenAt: u.lastContact,
                 lastSeenLabel: _formatTimeAgo(u.lastContact),
                 isCurrentUser: u.uuid == currentUserId.value,
@@ -64,6 +65,35 @@ class ProfilesController extends GetxController {
     } catch (_) {
       profiles.assignAll(const <Profile>[]);
     }
+  }
+
+  Future<void> updateCurrentUser({
+    required String name,
+    required String status,
+    required String bio,
+    String? profilePicture,
+  }) async {
+    final String uuid = currentUserId.value.trim();
+    if (uuid.isEmpty) return;
+
+    final Profile? existing = byId(uuid);
+    final DateTime lastContact = DateTime.now().toUtc();
+    final String? picture = profilePicture ?? existing?.profilePicture;
+
+    final dbPath = await _getDatabasePath();
+    final database = rust.AppDatabase(path: dbPath);
+    await database.updateUser(
+      user: rust.User(
+        uuid: uuid,
+        username: name,
+        status: status,
+        bio: bio,
+        profilePicture: picture,
+        lastContact: lastContact,
+      ),
+    );
+
+    await refreshProfiles();
   }
 
   Profile? byId(String id) {

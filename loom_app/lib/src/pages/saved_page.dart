@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:loom_app/src/controllers/posts_controller.dart';
 import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/post.dart';
+import 'package:loom_app/src/widgets/path_image.dart';
 
 class SavedPage extends StatelessWidget {
   const SavedPage({super.key});
@@ -105,6 +106,20 @@ class SavedPage extends StatelessWidget {
                           post.text,
                           style: sectionTheme.textTheme.bodyLarge,
                         ),
+                        if (post.imageUrl != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: AspectRatio(
+                                aspectRatio: 16 / 9,
+                                child: PathImage(
+                                  path: post.imageUrl!,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          ),
                         const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
