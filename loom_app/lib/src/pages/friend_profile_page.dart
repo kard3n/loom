@@ -4,8 +4,10 @@ import 'package:loom_app/src/controllers/posts_controller.dart';
 import 'package:loom_app/src/controllers/profiles_controller.dart';
 import 'package:loom_app/src/models/post.dart';
 
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+class FriendProfilePage extends StatelessWidget {
+  const FriendProfilePage({super.key, required this.friendName});
+
+  final String friendName;
 
   @override
   Widget build(BuildContext context) {
@@ -15,8 +17,7 @@ class ProfilePage extends StatelessWidget {
     final postsController = Get.find<PostsController>();
 
     return Obx(() {
-      final profile = profilesController.currentUser();
-      final displayName = profile?.name ?? 'You';
+      final profile = profilesController.byName(friendName);
       final bio = profile?.bio ?? '';
       final recent = postsController.posts
           .where((Post p) => p.authorId == (profile?.id ?? ''))
@@ -32,7 +33,7 @@ class ProfilePage extends StatelessWidget {
               expandedHeight: 200,
               backgroundColor: cs.surface,
               foregroundColor: cs.onSurface,
-              title: Text(displayName),
+              title: Text(friendName),
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
                   decoration: BoxDecoration(
@@ -56,7 +57,7 @@ class ProfilePage extends StatelessWidget {
                             radius: 40,
                             backgroundColor: cs.primary.withValues(alpha: 0.15),
                             child: Text(
-                              _initial(displayName),
+                              _initial(friendName),
                               style: theme.textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 color: cs.primary,
@@ -70,7 +71,7 @@ class ProfilePage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
                                 Text(
-                                  displayName,
+                                  friendName,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
@@ -117,7 +118,7 @@ class ProfilePage extends StatelessWidget {
                           child: OutlinedButton.icon(
                             onPressed: () {},
                             icon: const Icon(Icons.person_add_alt_1_rounded),
-                            label: const Text('Edit'),
+                            label: const Text('Follow'),
                           ),
                         ),
                       ],
