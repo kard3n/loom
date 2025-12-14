@@ -6,6 +6,52 @@ import 'package:loom_app/src/models/post.dart';
 import 'package:loom_app/src/models/profile.dart';
 import 'package:loom_app/src/pages/profile_page.dart';
 import 'package:loom_app/src/rust/api/simple.dart' as rust;
+// 1. ADD THE MOBILE SCANNER IMPORT
+import 'package:mobile_scanner/mobile_scanner.dart';
+
+// --- QR SCANNER SCREEN (New Widget for the Scanner View) ---
+
+class QrScannerScreen extends StatefulWidget {
+  const QrScannerScreen({super.key});
+@override
+  State<QrScannerScreen> createState() => _QrScannerScreenState();
+}
+
+class _QrScannerScreenState extends State<QrScannerScreen> {
+  // Define controller 
+  final MobileScannerController scannerController = MobileScannerController();
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Scan QR Code'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
+      body: MobileScanner(
+        // Set the detection code types if needed (e.g., only QR codes)
+        // scanSpec: const ScanSpec(
+        //   scanSpec: ScanCode.qr,
+        //   format: BarcodeFormat.all,
+        // ),
+        controller: scannerController,
+        onDetect: (BarcodeCapture capture) {
+          final Barcode? barcode = capture.barcodes.firstOrNull;
+          if (barcode != null && barcode.rawValue != null) {
+            final String code = barcode.rawValue!;
+            scannerController.stop();
+            Future.delayed(const Duration(milliseconds: 100), () {
+              if (mounted) {
+              Navigator.of(context).pop(code);
+              }
+            });
+          }
+        },
+      ),
+    );
+  }
+}
+
+// --- FEED PAGE (Unchanged) ---
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
@@ -266,16 +312,64 @@ class _CreatePostSheetContentState extends State<_CreatePostSheetContent> {
   }
 }
 
-// ... (Keep existing _HomeHeader, _StoriesSection, _TopicsSection, _PostStat, _initial)
-
-class _HomeHeader extends StatelessWidget {
+// 2. CONVERT _HomeHeader TO STATEFULWIDGET
+class _HomeHeader extends StatefulWidget {
   const _HomeHeader({required this.greeting, required this.subtitle});
   final String greeting;
   final String subtitle;
 
   @override
+  State<_HomeHeader> createState() => _HomeHeaderState();
+}
+
+class _HomeHeaderState extends State<_HomeHeader> {
+  // Optional: State to show the last scan result, or change the greeting
+  String? _scanResult;
+
+  void _scanQrCode() async {
+    // Navigate to the scanner screen and wait for the result (a string)
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (context) => const QrScannerScreen(),
+      ),
+    );
+
+    if (result != null) {
+      // Handle the scanned result
+      setState(() {
+        _scanResult = result;
+      });
+
+      // Provide feedback to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('QR Scan Successful: $result'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      // --- LOGIC EXAMPLE: Navigate to a Profile Page based on the scanned ID ---
+      // In a real app, 'result' could be an ID to look up in profilesController
+      final profilesController = Get.find<ProfilesController>();
+      final Profile? scannedProfile = profilesController.byId(result);
+      
+      if (scannedProfile != null) {
+        Navigator.of(context).push(
+          MaterialPageRoute<ProfilePage>(
+            builder: (BuildContext _) => ProfilePage(friendName: scannedProfile.name),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    // Use widget. to access properties in the State class
+    // Remove this. Do not actualize greeting text based on scan result
+    final String greetingText = widget.greeting;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
       child: Row(
@@ -302,21 +396,25 @@ class _HomeHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  greeting,
+                  greetingText, // Use the updated greeting text
                   style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  subtitle,
+                  widget.subtitle,
                   style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
           ),
           IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.qr_code_scanner_rounded)),
+          // 3. ATTACH THE SCANNER FUNCTION TO THE ICON BUTTON
+          IconButton(
+            onPressed: _scanQrCode,
+            icon: const Icon(Icons.qr_code_scanner_rounded)
+          ),
         ],
       ),
     );
@@ -467,7 +565,7 @@ class _PostCard extends StatelessWidget {
         children: <Widget>[
           ListTile(
             leading: CircleAvatar(
-              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+              backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
               child: Text(
                 _initial(author?.name ?? '?'),
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
