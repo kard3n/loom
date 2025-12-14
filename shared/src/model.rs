@@ -21,7 +21,7 @@ pub struct Post{
     pub body: String,
     pub timestamp: DateTime<Utc>,
     pub image: Option<String>,
-    pub source_totem: String,
+    pub source_totem: Option<String>
 }
 
 pub struct Totem{

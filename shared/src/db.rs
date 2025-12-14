@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use rusqlite::types::FromSqlError;
 use rusqlite::{Connection, Error, Row, params};
 use std::string::String;
+use rusqlite::fallible_iterator::FallibleIterator;
 
 pub struct Database {
     connection: Connection,
@@ -49,7 +50,7 @@ impl Database {
             body  TEXT NOT NULL,
             timestamp TEXT NOT NULL,
             image TEXT,
-            source_totem TEXT NOT NULL,
+            source_totem TEXT,
             FOREIGN KEY (user_id) REFERENCES users(uuid),
             FOREIGN KEY (source_totem) REFERENCES totems(uuid)
         )",
@@ -87,7 +88,7 @@ impl Database {
                     &post.body.to_string(),
                     &post.timestamp,
                     post.image.as_ref().map(|i| i.to_string()),
-                    &post.source_totem.to_string(),
+                    post.source_totem.as_ref().map(|i| i.to_string()),
                 ),
             )
             .expect("Failed to create post.");
@@ -161,9 +162,8 @@ impl Database {
                     title: get_heapless(row, 2)?,
                     body: get_heapless(row, 3)?,
                     timestamp: row.get(4)?, // DateTime<Utc> works natively with feature
-                    image: row.get::<_, Option<String>>(5)?
-                        .map(|s| s.parse().expect("Failed to parse image string")),
-                    source_totem: get_heapless(row, 6)?,
+                    image: row.get(5).unwrap(),
+                    source_totem: row.get(6).unwrap(),
                 })
             },
         );
@@ -238,7 +238,7 @@ impl Database {
                 timestamp: row.get(4)?,
                 image: row.get::<_, Option<String>>(5)?
                     .map(|s| s.parse().expect("Failed to parse image string")),
-                source_totem: get_heapless(row, 6)?,
+                source_totem: row.get(6).unwrap(),
             })
         })?;
 
@@ -323,7 +323,7 @@ mod tests {
 
             // Assuming image/totem IDs are also UUIDs or short identifiers
             image: Some("000e8400-e29b-41d4-a716-446655440022".try_into().unwrap()),
-            source_totem: "990e8400-e29b-41d4-a716-446655440011".try_into().unwrap(),
+            source_totem: Some("990e8400-e29b-41d4-a716-446655440011".try_into().unwrap()),
         };
 
         db.create_user(&user);
@@ -337,6 +337,60 @@ mod tests {
                 post.timestamp.sub(TimeDelta::seconds(5)),
                 post.timestamp.add(TimeDelta::seconds(5))
             ),
+            Vec::from(["123e4567-e89b-12d3-a456-426614174000"])
+        );
+
+        assert_eq!(
+            db.get_post_by_id("123e4567-e89b-12d3-a456-426614174000")
+                .unwrap(),
+            post
+        );
+
+        assert_eq!(
+            db.get_user_by_id("550e8400-e29b-41d4-a716-446655440000")
+                .unwrap(),
+            user
+        )
+    }
+
+    #[test]
+    fn test_write_read_no_totem() {
+        std::fs::remove_file("test.db".to_string());
+        let db = Database::new("test.db".to_string());
+
+        let user = User {
+            uuid: "550e8400-e29b-41d4-a716-446655440000".try_into().unwrap(),
+            username: "tag".try_into().unwrap(),
+            status: "Online".try_into().unwrap(),
+            bio: "bio".try_into().unwrap(),
+            profile_picture: Some("123e4567-e89b-12d3-a456-426697174000".try_into().unwrap()),
+            last_contact: Utc::now(),
+        };
+
+        let post = Post {
+            uuid: "123e4567-e89b-12d3-a456-426614174000".try_into().unwrap(),
+            user_id: "550e8400-e29b-41d4-a716-446655440000".try_into().unwrap(),
+
+            title: "First Post from Embedded Rust".try_into().unwrap(),
+
+            body: "This is a test body. We are testing heapless strings inside SQLite. \
+           It works great for embedded systems because it avoids fragmentation."
+                .try_into()
+                .unwrap(),
+
+            timestamp: Utc::now(),
+
+            // Assuming image/totem IDs are also UUIDs or short identifiers
+            image: None,
+            source_totem: None,
+        };
+
+        db.create_user(&user);
+
+        db.create_post(&post);
+
+        assert_eq!(
+            db.get_all_post_ids(),
             Vec::from(["123e4567-e89b-12d3-a456-426614174000"])
         );
 
